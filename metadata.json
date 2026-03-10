@@ -1,0 +1,7 @@
+{
+  "name": "Core AI",
+  "description": "A clone of CalAi that estimates calories and macronutrients from meal photos using Gemini Vision API.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
