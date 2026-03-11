@@ -36,10 +36,13 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "@expo/cli": "^0.18.0",
+    "@expo/cli": "^0.18.31",
     "@types/react": "^19.2.14",
     "@types/react-native": "^0.72.8",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "@expo/cli": "^0.18.31"
   },
   "private": true
 }
