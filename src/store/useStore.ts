@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../services/supabase';
+import { Session, User } from '@supabase/supabase-js';
+import { decode } from 'base64-arraybuffer';
 
 export interface MealRecord {
   id: string;
@@ -12,26 +14,114 @@ export interface MealRecord {
   imageUrl?: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  timestamp: string;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  goal: 'muscle_gain' | 'fat_loss' | 'health';
+  gender: 'male' | 'female' | 'other';
+  age: number;
+  weight: number;
+  height: number;
+  activity_level: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
+  daily_calories_goal: number;
+  protein_goal: number;
+  carbs_goal: number;
+  fat_goal: number;
+  onboarding_completed: boolean;
+}
+
 interface AppState {
+  user: User | null;
+  session: Session | null;
+  profile: UserProfile | null;
   meals: MealRecord[];
-  dailyGoal: number;
+  messages: ChatMessage[];
+  water: number;
   isLoading: boolean;
+  setUser: (user: User | null, session: Session | null) => void;
+  fetchProfile: () => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   fetchMeals: () => Promise<void>;
   addMeal: (meal: Omit<MealRecord, 'id'>) => Promise<void>;
   removeMeal: (id: string) => Promise<void>;
+  uploadImage: (base64: string) => Promise<string | null>;
+  addWater: (amount: number) => void;
+  resetWater: () => void;
+  addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+  signOut: () => Promise<void>;
 }
 
 export const useStore = create<AppState>((set, get) => ({
+  user: null,
+  session: null,
+  profile: null,
   meals: [],
-  dailyGoal: 2000,
+  messages: [],
+  water: 0,
   isLoading: false,
 
+  setUser: (user, session) => {
+    set({ user, session });
+    if (user) {
+      get().fetchProfile();
+      get().fetchMeals();
+    } else {
+      set({ profile: null, meals: [], messages: [], water: 0 });
+    }
+  },
+
+  fetchProfile: async () => {
+    const { user } = get();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching profile:', error);
+    } else if (data) {
+      set({ profile: data });
+    }
+  },
+
+  updateProfile: async (updates) => {
+    const { user } = get();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .upsert({ id: user.id, ...updates })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    } else {
+      set({ profile: data });
+    }
+  },
+
   fetchMeals: async () => {
+    const { user } = get();
+    if (!user) return;
+
     set({ isLoading: true });
     try {
       const { data, error } = await supabase
         .from('meals')
         .select('*')
+        .eq('user_id', user.id)
         .order('date', { ascending: false });
       
       if (error) {
@@ -56,12 +146,40 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
+  uploadImage: async (base64) => {
+    const { user } = get();
+    if (!user) return null;
+
+    const fileName = `${user.id}/${Date.now()}.jpg`;
+    const { data, error } = await supabase.storage
+      .from('meal-photos')
+      .upload(fileName, decode(base64), {
+        contentType: 'image/jpeg',
+        upsert: true
+      });
+
+    if (error) {
+      console.error('Error uploading image:', error);
+      return null;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('meal-photos')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
+  },
+
   addMeal: async (meal) => {
+    const { user } = get();
+    if (!user) return;
+
     try {
       const { data, error } = await supabase
         .from('meals')
         .insert([
           {
+            user_id: user.id,
             date: meal.date,
             food_name: meal.foodName,
             calories: meal.calories,
@@ -109,5 +227,27 @@ export const useStore = create<AppState>((set, get) => ({
     } catch (err) {
       console.error('Unexpected error deleting meal:', err);
     }
+  },
+
+  addWater: (amount) => {
+    set((state) => ({ water: state.water + amount }));
+  },
+
+  resetWater: () => {
+    set({ water: 0 });
+  },
+
+  addMessage: (message) => {
+    const newMessage: ChatMessage = {
+      ...message,
+      id: Math.random().toString(36).substring(7),
+      timestamp: new Date().toISOString(),
+    };
+    set((state) => ({ messages: [...state.messages, newMessage] }));
+  },
+
+  signOut: async () => {
+    await supabase.auth.signOut();
+    set({ user: null, session: null, profile: null, meals: [], messages: [], water: 0 });
   },
 }));

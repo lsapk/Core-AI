@@ -1,26 +1,46 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Alert } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Alert, Dimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Camera } from 'expo-camera';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { BlurView } from 'expo-blur';
+import { View as MotiView, AnimatePresence } from 'moti';
+import { X, Zap, ScanBarcode, Camera as CameraIcon, Loader2 } from 'lucide-react-native';
 import { analyzeMealImage } from '../services/gemini';
 import { fetchProductByBarcode } from '../services/openFoodFacts';
 import { useStore } from '../store/useStore';
+import { Theme } from '../utils/Theme';
+
+const { width, height } = Dimensions.get('window');
 
 export default function CameraScreen({ onComplete }: { onComplete: () => void }) {
-  const [permission, requestPermission] = useCameraPermissions();
+  const insets = useSafeAreaInsets();
+  const [permission, requestPermission] = Camera.useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
-  const cameraRef = useRef<CameraView>(null);
+  const [flash, setFlash] = useState<'off' | 'on'>('off');
+  const cameraRef = useRef<Camera>(null);
   const addMeal = useStore(state => state.addMeal);
+  const profile = useStore(state => state.profile);
 
   if (!permission) return <View style={styles.container} />;
   if (!permission.granted) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.text}>We need camera access to scan meals.</Text>
-        <TouchableOpacity style={styles.button} onPress={requestPermission}>
-          <Text style={styles.buttonText}>Grant Permission</Text>
-        </TouchableOpacity>
+      <View style={[styles.permissionContainer, { paddingTop: insets.top }]}>
+        <MotiView 
+          from={{ opacity: 0, scale: 0.9 } as any}
+          animate={{ opacity: 1, scale: 1 } as any}
+          style={styles.permissionCard}
+        >
+          <View style={styles.permissionIcon}>
+            <CameraIcon size={40} color={Theme.colors.primary} />
+          </View>
+          <Text style={styles.permissionTitle}>Camera Access</Text>
+          <Text style={styles.permissionText}>We need camera access to analyze your meals and track your nutrition.</Text>
+          <TouchableOpacity style={styles.grantButton} onPress={requestPermission}>
+            <Text style={styles.grantButtonText}>Grant Permission</Text>
+          </TouchableOpacity>
+        </MotiView>
       </View>
     );
   }
@@ -28,7 +48,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
   const handleBarcodeScan = async () => {
     Alert.prompt(
       "Scan Barcode",
-      "Enter barcode number (e.g. 3017620422003):",
+      "Enter barcode number:",
       [
         { text: "Cancel", style: "cancel" },
         { 
@@ -59,7 +79,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
   };
 
   const takePicture = async () => {
-    if (!cameraRef.current) return;
+    if (!cameraRef.current || isProcessing) return;
     try {
       setIsProcessing(true);
       const photo = await cameraRef.current.takePictureAsync();
@@ -75,7 +95,10 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
       setPreview(manipResult.uri);
 
       if (manipResult.base64) {
-        const result = await analyzeMealImage(manipResult.base64, 'image/jpeg');
+        const result = await analyzeMealImage(manipResult.base64, 'image/jpeg', profile?.goal);
+        
+        // Upload image to Supabase Storage
+        const publicUrl = await useStore.getState().uploadImage(manipResult.base64);
         
         await addMeal({
           date: new Date().toISOString(),
@@ -84,7 +107,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
           protein: result.protein,
           carbs: result.carbs,
           fat: result.fat,
-          imageUrl: manipResult.uri
+          imageUrl: publicUrl || undefined
         });
         onComplete();
       }
@@ -99,46 +122,254 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
 
   return (
     <View style={styles.container}>
-      {preview ? (
-        <Image source={{ uri: preview }} style={StyleSheet.absoluteFill} />
-      ) : (
-        <CameraView style={StyleSheet.absoluteFill} ref={cameraRef} facing="back" />
-      )}
-      
-      {isProcessing && (
-        <View style={styles.overlay}>
-          <ActivityIndicator size="large" color="#10b981" />
-          <Text style={styles.loadingText}>Analyzing...</Text>
-        </View>
-      )}
+      <View style={styles.cameraWrapper}>
+        {preview ? (
+          <Image source={{ uri: preview }} style={styles.previewImage} />
+        ) : (
+          <Camera 
+            style={StyleSheet.absoluteFill} 
+            ref={cameraRef} 
+            type={"back" as any}
+            flashMode={flash === 'on' ? ("torch" as any) : ("off" as any)}
+          />
+        )}
 
-      {!isProcessing && !preview && (
-        <View style={styles.bottomBar}>
-          <TouchableOpacity style={styles.barcodeButton} onPress={handleBarcodeScan}>
-            <Text style={styles.barcodeText}>Barcode</Text>
+        {/* Top Controls */}
+        <View style={[styles.topControls, { paddingTop: insets.top || 20 }]}>
+          <TouchableOpacity 
+            style={styles.iconButton} 
+            onPress={onComplete}
+            activeOpacity={0.7}
+          >
+            <BlurView intensity={40} tint="dark" style={styles.blurIcon}>
+              <X size={24} color="white" />
+            </BlurView>
           </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
-            <View style={styles.captureInner} />
+
+          <TouchableOpacity 
+            style={styles.iconButton} 
+            onPress={() => setFlash(flash === 'on' ? 'off' : 'on')}
+            activeOpacity={0.7}
+          >
+            <BlurView intensity={40} tint="dark" style={styles.blurIcon}>
+              <Zap size={24} color={flash === 'on' ? Theme.colors.orange : "white"} fill={flash === 'on' ? Theme.colors.orange : "transparent"} />
+            </BlurView>
           </TouchableOpacity>
-          
-          <View style={{ width: 60 }} /> {/* Spacer to balance barcode button */}
         </View>
-      )}
+
+        {/* Bottom Controls */}
+        <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 20 }]}>
+          <TouchableOpacity 
+            style={styles.sideButton} 
+            onPress={handleBarcodeScan}
+            activeOpacity={0.7}
+          >
+            <BlurView intensity={40} tint="dark" style={styles.blurSideButton}>
+              <ScanBarcode size={24} color="white" />
+              <Text style={styles.sideButtonText}>Barcode</Text>
+            </BlurView>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.captureButton} 
+            onPress={takePicture}
+            disabled={isProcessing}
+            activeOpacity={0.8}
+          >
+            <View style={styles.captureOuter}>
+              <MotiView 
+                animate={{ scale: isProcessing ? 0.8 : 1 } as any}
+                style={styles.captureInner} 
+              />
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.sideButtonPlaceholder} />
+        </View>
+
+        {/* Processing Overlay */}
+        <AnimatePresence>
+          {isProcessing && (
+            <MotiView 
+              from={{ opacity: 0 } as any}
+              animate={{ opacity: 1 } as any}
+              exit={{ opacity: 0 } as any}
+              style={styles.overlay}
+            >
+              <BlurView intensity={60} tint="dark" style={StyleSheet.absoluteFill}>
+                <View style={styles.overlayContent}>
+                  <MotiView
+                    from={{ rotate: '0deg' } as any}
+                    animate={{ rotate: '360deg' } as any}
+                    transition={{ loop: true, type: 'timing', duration: 2000 } as any}
+                  >
+                    <Loader2 size={48} color="white" />
+                  </MotiView>
+                  <Text style={styles.loadingText}>Analyzing Meal...</Text>
+                  <Text style={styles.loadingSub}>Identifying ingredients and nutrition</Text>
+                </View>
+              </BlurView>
+            </MotiView>
+          )}
+        </AnimatePresence>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'black', justifyContent: 'center', borderRadius: 32, overflow: 'hidden' },
-  text: { color: 'white', textAlign: 'center', marginBottom: 20, fontSize: 16 },
-  button: { backgroundColor: '#10b981', padding: 15, borderRadius: 12, alignSelf: 'center' },
-  buttonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
-  loadingText: { color: 'white', marginTop: 16, fontSize: 18, fontWeight: 'bold' },
-  bottomBar: { position: 'absolute', bottom: 40, width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 20 },
-  captureButton: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.3)', justifyContent: 'center', alignItems: 'center' },
-  captureInner: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'white' },
-  barcodeButton: { backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 20 },
-  barcodeText: { color: 'white', fontWeight: 'bold' }
+  container: { 
+    flex: 1, 
+    backgroundColor: 'black',
+  },
+  cameraWrapper: {
+    flex: 1,
+    borderRadius: Theme.radius.xl,
+    overflow: 'hidden',
+  },
+  previewImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  permissionContainer: {
+    flex: 1,
+    backgroundColor: Theme.colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Theme.spacing.xl,
+  },
+  permissionCard: {
+    backgroundColor: Theme.colors.card,
+    borderRadius: Theme.radius.xl,
+    padding: Theme.spacing.xl,
+    alignItems: 'center',
+    ...Theme.shadows.medium,
+  },
+  permissionIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Theme.spacing.lg,
+  },
+  permissionTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    marginBottom: Theme.spacing.sm,
+  },
+  permissionText: {
+    fontSize: 15,
+    color: Theme.colors.secondaryText,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: Theme.spacing.xl,
+  },
+  grantButton: {
+    backgroundColor: Theme.colors.primary,
+    paddingVertical: 14,
+    paddingHorizontal: Theme.spacing.xl,
+    borderRadius: Theme.radius.lg,
+    width: '100%',
+    alignItems: 'center',
+  },
+  grantButtonText: {
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  topControls: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: Theme.spacing.lg,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  blurIcon: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bottomControls: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Theme.spacing.xl,
+  },
+  captureButton: {
+    width: 84,
+    height: 84,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  captureOuter: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  captureInner: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'white',
+  },
+  sideButton: {
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  sideButtonPlaceholder: {
+    width: 80,
+  },
+  blurSideButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    height: '100%',
+  },
+  sideButtonText: {
+    color: 'white',
+    fontWeight: '700',
+    marginLeft: 8,
+    fontSize: 14,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+  },
+  overlayContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Theme.spacing.xl,
+  },
+  loadingText: {
+    color: 'white',
+    fontSize: 22,
+    fontWeight: '800',
+    marginTop: 24,
+    letterSpacing: -0.5,
+  },
+  loadingSub: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 15,
+    marginTop: 8,
+    textAlign: 'center',
+  },
 });
