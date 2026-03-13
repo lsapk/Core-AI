@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../services/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { decode } from 'base64-arraybuffer';
@@ -11,6 +13,7 @@ export interface MealRecord {
   protein: number;
   carbs: number;
   fat: number;
+  servings: number;
   imageUrl?: string;
 }
 
@@ -37,6 +40,8 @@ export interface UserProfile {
   onboarding_completed: boolean;
 }
 
+export type ThemePreference = 'system' | 'light' | 'dark';
+
 interface AppState {
   user: User | null;
   session: Session | null;
@@ -45,6 +50,7 @@ interface AppState {
   messages: ChatMessage[];
   water: number;
   isLoading: boolean;
+  themePreference: ThemePreference;
   setUser: (user: User | null, session: Session | null) => void;
   fetchProfile: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
@@ -55,199 +61,221 @@ interface AppState {
   addWater: (amount: number) => void;
   resetWater: () => void;
   addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+  setThemePreference: (theme: ThemePreference) => void;
   signOut: () => Promise<void>;
 }
 
-export const useStore = create<AppState>((set, get) => ({
-  user: null,
-  session: null,
-  profile: null,
-  meals: [],
-  messages: [],
-  water: 0,
-  isLoading: false,
+export const useStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      session: null,
+      profile: null,
+      meals: [],
+      messages: [],
+      water: 0,
+      isLoading: false,
+      themePreference: 'system',
 
-  setUser: (user, session) => {
-    set({ user, session });
-    if (user) {
-      get().fetchProfile();
-      get().fetchMeals();
-    } else {
-      set({ profile: null, meals: [], messages: [], water: 0 });
-    }
-  },
+      setUser: (user, session) => {
+        set({ user, session });
+        if (user) {
+          get().fetchProfile();
+          get().fetchMeals();
+        } else {
+          set({ profile: null, meals: [], messages: [], water: 0 });
+        }
+      },
 
-  fetchProfile: async () => {
-    const { user } = get();
-    if (!user) return;
+      fetchProfile: async () => {
+        const { user } = get();
+        if (!user) return;
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
 
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error fetching profile:', error);
-    } else if (data) {
-      set({ profile: data });
-    }
-  },
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching profile:', error);
+        } else if (data) {
+          set({ profile: data });
+        }
+      },
 
-  updateProfile: async (updates) => {
-    const { user } = get();
-    if (!user) return;
+      updateProfile: async (updates) => {
+        const { user } = get();
+        if (!user) return;
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .upsert({ id: user.id, ...updates })
-      .select()
-      .single();
+        const { data, error } = await supabase
+          .from('profiles')
+          .upsert({ id: user.id, ...updates })
+          .select()
+          .single();
 
-    if (error) {
-      console.error('Error updating profile:', error);
-      throw error;
-    } else {
-      set({ profile: data });
-    }
-  },
+        if (error) {
+          console.error('Error updating profile:', error);
+          throw error;
+        } else {
+          set({ profile: data });
+        }
+      },
 
-  fetchMeals: async () => {
-    const { user } = get();
-    if (!user) return;
+      fetchMeals: async () => {
+        const { user } = get();
+        if (!user) return;
 
-    set({ isLoading: true });
-    try {
-      const { data, error } = await supabase
-        .from('meals')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching meals:', error);
-      } else if (data) {
-        const formattedMeals = data.map(item => ({
-          id: item.id,
-          date: item.date,
-          foodName: item.food_name,
-          calories: item.calories,
-          protein: item.protein,
-          carbs: item.carbs,
-          fat: item.fat,
-          imageUrl: item.image_url,
-        }));
-        set({ meals: formattedMeals });
-      }
-    } catch (err) {
-      console.error('Unexpected error fetching meals:', err);
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  uploadImage: async (base64) => {
-    const { user } = get();
-    if (!user) return null;
-
-    const fileName = `${user.id}/${Date.now()}.jpg`;
-    const { data, error } = await supabase.storage
-      .from('meal-photos')
-      .upload(fileName, decode(base64), {
-        contentType: 'image/jpeg',
-        upsert: true
-      });
-
-    if (error) {
-      console.error('Error uploading image:', error);
-      return null;
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('meal-photos')
-      .getPublicUrl(fileName);
-
-    return publicUrl;
-  },
-
-  addMeal: async (meal) => {
-    const { user } = get();
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('meals')
-        .insert([
-          {
-            user_id: user.id,
-            date: meal.date,
-            food_name: meal.foodName,
-            calories: meal.calories,
-            protein: meal.protein,
-            carbs: meal.carbs,
-            fat: meal.fat,
-            image_url: meal.imageUrl,
+        set({ isLoading: true });
+        try {
+          const { data, error } = await supabase
+            .from('meals')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('date', { ascending: false });
+          
+          if (error) {
+            console.error('Error fetching meals:', error);
+          } else if (data) {
+            const formattedMeals = data.map(item => ({
+              id: item.id,
+              date: item.date,
+              foodName: item.food_name,
+              calories: item.calories,
+              protein: item.protein,
+              carbs: item.carbs,
+              fat: item.fat,
+              servings: item.servings || 1,
+              imageUrl: item.image_url,
+            }));
+            set({ meals: formattedMeals });
           }
-        ])
-        .select()
-        .single();
+        } catch (err) {
+          console.error('Unexpected error fetching meals:', err);
+        } finally {
+          set({ isLoading: false });
+        }
+      },
 
-      if (error) {
-        console.error('Error adding meal:', error);
-      } else if (data) {
-        const newMeal: MealRecord = {
-          id: data.id,
-          date: data.date,
-          foodName: data.food_name,
-          calories: data.calories,
-          protein: data.protein,
-          carbs: data.carbs,
-          fat: data.fat,
-          imageUrl: data.image_url,
+      uploadImage: async (base64) => {
+        const { user } = get();
+        if (!user) return null;
+
+        const fileName = `${user.id}/${Date.now()}.jpg`;
+        const { data, error } = await supabase.storage
+          .from('meal-photos')
+          .upload(fileName, decode(base64), {
+            contentType: 'image/jpeg',
+            upsert: true
+          });
+
+        if (error) {
+          console.error('Error uploading image:', error);
+          return null;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('meal-photos')
+          .getPublicUrl(fileName);
+
+        return publicUrl;
+      },
+
+      addMeal: async (meal) => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          const { data, error } = await supabase
+            .from('meals')
+            .insert([
+              {
+                user_id: user.id,
+                date: meal.date,
+                food_name: meal.foodName,
+                calories: meal.calories,
+                protein: meal.protein,
+                carbs: meal.carbs,
+                fat: meal.fat,
+                servings: meal.servings || 1,
+                image_url: meal.imageUrl,
+              }
+            ])
+            .select()
+            .single();
+
+          if (error) {
+            console.error('Error adding meal:', error);
+          } else if (data) {
+            const newMeal: MealRecord = {
+              id: data.id,
+              date: data.date,
+              foodName: data.food_name,
+              calories: data.calories,
+              protein: data.protein,
+              carbs: data.carbs,
+              fat: data.fat,
+              servings: data.servings || 1,
+              imageUrl: data.image_url,
+            };
+            set((state) => ({ meals: [newMeal, ...state.meals] }));
+          }
+        } catch (err) {
+          console.error('Unexpected error adding meal:', err);
+        }
+      },
+
+      removeMeal: async (id) => {
+        try {
+          const { error } = await supabase
+            .from('meals')
+            .delete()
+            .eq('id', id);
+
+          if (error) {
+            console.error('Error deleting meal:', error);
+          } else {
+            set((state) => ({ meals: state.meals.filter((m) => m.id !== id) }));
+          }
+        } catch (err) {
+          console.error('Unexpected error deleting meal:', err);
+        }
+      },
+
+      addWater: (amount) => {
+        set((state) => ({ water: state.water + amount }));
+      },
+
+      resetWater: () => {
+        set({ water: 0 });
+      },
+
+      addMessage: (message) => {
+        const newMessage: ChatMessage = {
+          ...message,
+          id: Math.random().toString(36).substring(7),
+          timestamp: new Date().toISOString(),
         };
-        set((state) => ({ meals: [newMeal, ...state.meals] }));
-      }
-    } catch (err) {
-      console.error('Unexpected error adding meal:', err);
+        set((state) => ({ messages: [...state.messages, newMessage] }));
+      },
+
+      setThemePreference: (theme) => {
+        set({ themePreference: theme });
+      },
+
+      signOut: async () => {
+        await supabase.auth.signOut();
+        set({ user: null, session: null, profile: null, meals: [], messages: [], water: 0 });
+      },
+    }),
+    {
+      name: 'core-ai-storage',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({ 
+        themePreference: state.themePreference,
+        water: state.water,
+        messages: state.messages
+      }),
     }
-  },
-
-  removeMeal: async (id) => {
-    try {
-      const { error } = await supabase
-        .from('meals')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting meal:', error);
-      } else {
-        set((state) => ({ meals: state.meals.filter((m) => m.id !== id) }));
-      }
-    } catch (err) {
-      console.error('Unexpected error deleting meal:', err);
-    }
-  },
-
-  addWater: (amount) => {
-    set((state) => ({ water: state.water + amount }));
-  },
-
-  resetWater: () => {
-    set({ water: 0 });
-  },
-
-  addMessage: (message) => {
-    const newMessage: ChatMessage = {
-      ...message,
-      id: Math.random().toString(36).substring(7),
-      timestamp: new Date().toISOString(),
-    };
-    set((state) => ({ messages: [...state.messages, newMessage] }));
-  },
-
-  signOut: async () => {
-    await supabase.auth.signOut();
-    set({ user: null, session: null, profile: null, meals: [], messages: [], water: 0 });
-  },
-}));
+  )
+);

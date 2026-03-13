@@ -3,12 +3,13 @@ import { View, Text, StyleSheet, ScrollView, Image, Dimensions, TouchableOpacity
 import { View as MotiView, AnimatePresence } from 'moti';
 import Svg, { Circle } from 'react-native-svg';
 import { useStore } from '../store/useStore';
-import { Theme } from '../utils/Theme';
+import { useAppTheme } from '../utils/Theme';
 import { ChevronRight, Flame, Target, Utensils, Plus, Droplets, Camera as CameraIcon, Search, X, Bot } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 const ProgressRing = ({ size, strokeWidth, progress, color }: { size: number, strokeWidth: number, progress: number, color: string }) => {
+  const theme = useAppTheme();
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const strokeDashoffset = circumference - progress * circumference;
@@ -16,7 +17,7 @@ const ProgressRing = ({ size, strokeWidth, progress, color }: { size: number, st
   return (
     <Svg width={size} height={size}>
       <Circle
-        stroke={Theme.colors.background}
+        stroke={theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}
         fill="none"
         cx={size / 2}
         cy={size / 2}
@@ -40,6 +41,8 @@ const ProgressRing = ({ size, strokeWidth, progress, color }: { size: number, st
 };
 
 export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | 'camera' | 'history' | 'profile') => void }) {
+  const theme = useAppTheme();
+  const styles = getStyles(theme);
   const { meals, profile, water, addWater, addMeal } = useStore();
   const [isManualModalVisible, setIsManualModalVisible] = useState(false);
   const [manualMeal, setManualMeal] = useState({
@@ -48,6 +51,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
     protein: '',
     carbs: '',
     fat: '',
+    servings: '1',
   });
 
   const handleManualSubmit = async () => {
@@ -56,17 +60,20 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
       return;
     }
 
+    const qty = parseFloat(manualMeal.servings) || 1;
+
     try {
       await addMeal({
         date: new Date().toISOString(),
         foodName: manualMeal.foodName,
-        calories: parseInt(manualMeal.calories),
-        protein: parseFloat(manualMeal.protein) || 0,
-        carbs: parseFloat(manualMeal.carbs) || 0,
-        fat: parseFloat(manualMeal.fat) || 0,
+        calories: parseInt(manualMeal.calories) * qty,
+        protein: (parseFloat(manualMeal.protein) || 0) * qty,
+        carbs: (parseFloat(manualMeal.carbs) || 0) * qty,
+        fat: (parseFloat(manualMeal.fat) || 0) * qty,
+        servings: qty,
       });
       setIsManualModalVisible(false);
-      setManualMeal({ foodName: '', calories: '', protein: '', carbs: '', fat: '' });
+      setManualMeal({ foodName: '', calories: '', protein: '', carbs: '', fat: '', servings: '1' });
     } catch (error) {
       Alert.alert("Erreur", "Impossible d'ajouter le repas.");
     }
@@ -113,7 +120,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
               size={160} 
               strokeWidth={14} 
               progress={progress} 
-              color={Theme.colors.primary} 
+              color={theme.colors.primary} 
             />
             <View style={styles.circleOverlay}>
               <Text style={styles.caloriesText}>{remainingCalories}</Text>
@@ -124,7 +131,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
           <View style={styles.statsColumn}>
             <View style={styles.miniStat}>
               <View style={[styles.miniIcon, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
-                <Flame size={16} color={Theme.colors.primary} />
+                <Flame size={16} color={theme.colors.primary} />
               </View>
               <View>
                 <Text style={styles.miniLabel}>Consommé</Text>
@@ -134,7 +141,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
             
             <View style={styles.miniStat}>
               <View style={[styles.miniIcon, { backgroundColor: 'rgba(0, 122, 255, 0.1)' }]}>
-                <Target size={16} color={Theme.colors.blue} />
+                <Target size={16} color={theme.colors.blue} />
               </View>
               <View>
                 <Text style={styles.miniLabel}>Objectif</Text>
@@ -148,9 +155,9 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
       {/* Macros */}
       <View style={styles.macrosRow}>
         {[
-          { label: 'Protéines', value: totalProtein, goal: proteinGoal, color: Theme.colors.blue, icon: 'P' },
-          { label: 'Glucides', value: totalCarbs, goal: carbsGoal, color: Theme.colors.orange, icon: 'G' },
-          { label: 'Lipides', value: totalFat, goal: fatGoal, color: Theme.colors.red, icon: 'L' },
+          { label: 'Protéines', value: totalProtein, goal: proteinGoal, color: theme.colors.blue, icon: 'P' },
+          { label: 'Glucides', value: totalCarbs, goal: carbsGoal, color: theme.colors.orange, icon: 'G' },
+          { label: 'Lipides', value: totalFat, goal: fatGoal, color: theme.colors.red, icon: 'L' },
         ].map((macro, index) => (
           <MotiView 
             key={macro.label}
@@ -174,21 +181,21 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
       {/* Quick Actions */}
       <View style={styles.quickActions}>
         <TouchableOpacity style={styles.actionBtn} onPress={() => onNavigate('chat')}>
-          <View style={[styles.actionIcon, { backgroundColor: Theme.colors.primary }]}>
+          <View style={[styles.actionIcon, { backgroundColor: theme.colors.primary }]}>
             <Bot size={24} color="white" />
           </View>
           <Text style={styles.actionLabel}>AI Chat</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.actionBtn}>
-          <View style={[styles.actionIcon, { backgroundColor: Theme.colors.blue }]}>
+          <View style={[styles.actionIcon, { backgroundColor: theme.colors.blue }]}>
             <Search size={24} color="white" />
           </View>
           <Text style={styles.actionLabel}>Chercher</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionBtn} onPress={() => setIsManualModalVisible(true)}>
-          <View style={[styles.actionIcon, { backgroundColor: Theme.colors.orange }]}>
+          <View style={[styles.actionIcon, { backgroundColor: theme.colors.orange }]}>
             <Plus size={24} color="white" />
           </View>
           <Text style={styles.actionLabel}>Manuel</Text>
@@ -208,7 +215,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
             <Text style={styles.aiTitle}>AI Nutritionist</Text>
             <Text style={styles.aiSub}>"Combien de calories dans un croissant ?"</Text>
           </View>
-          <ChevronRight size={20} color={Theme.colors.secondaryText} />
+          <ChevronRight size={20} color={theme.colors.secondaryText} />
         </View>
       </TouchableOpacity>
 
@@ -220,7 +227,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
       >
         <View style={styles.waterHeader}>
           <View style={styles.waterTitleRow}>
-            <Droplets size={20} color={Theme.colors.blue} />
+            <Droplets size={20} color={theme.colors.blue} />
             <Text style={styles.waterTitle}>Hydratation</Text>
           </View>
           <Text style={styles.waterGoal}>Objectif: 2.5L</Text>
@@ -255,7 +262,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
 
       {todaysMeals.length === 0 ? (
         <View style={styles.emptyCard}>
-          <Utensils size={32} color={Theme.colors.secondaryText} opacity={0.3} />
+          <Utensils size={32} color={theme.colors.secondaryText} opacity={0.3} />
           <Text style={styles.emptyText}>Aucun repas aujourd'hui</Text>
         </View>
       ) : (
@@ -272,15 +279,20 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
                 <Image source={{ uri: meal.imageUrl }} style={styles.mealImage} />
               ) : (
                 <View style={styles.mealImagePlaceholder}>
-                  <Utensils size={20} color={Theme.colors.secondaryText} />
+                  <Utensils size={20} color={theme.colors.secondaryText} />
                 </View>
               )}
             </View>
             <View style={styles.mealInfo}>
-              <Text style={styles.mealName} numberOfLines={1}>{meal.foodName}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={[styles.mealName, { flex: 1 }]} numberOfLines={1}>{meal.foodName}</Text>
+                {meal.servings > 0 && (
+                  <Text style={styles.servingsBadge}>x{meal.servings}</Text>
+                )}
+              </View>
               <Text style={styles.mealCals}>{meal.calories} kcal</Text>
             </View>
-            <ChevronRight size={20} color={Theme.colors.separator} />
+            <ChevronRight size={20} color={theme.colors.separator} />
           </MotiView>
         ))
       )}
@@ -292,7 +304,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Ajout manuel</Text>
               <TouchableOpacity onPress={() => setIsManualModalVisible(false)}>
-                <X size={24} color={Theme.colors.text} />
+                <X size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -334,6 +346,14 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
               />
             </View>
 
+            <TextInput
+              style={styles.input}
+              placeholder="Quantité (ex: 1.5)"
+              keyboardType="numeric"
+              value={manualMeal.servings}
+              onChangeText={(v) => setManualMeal({...manualMeal, servings: v})}
+            />
+
             <TouchableOpacity style={styles.submitBtn} onPress={handleManualSubmit}>
               <Text style={styles.submitBtnText}>Ajouter le repas</Text>
             </TouchableOpacity>
@@ -344,48 +364,48 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.background },
-  content: { padding: Theme.spacing.lg, paddingBottom: 120 },
+const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  content: { padding: theme.spacing.lg, paddingBottom: 120 },
   card: { 
-    backgroundColor: Theme.colors.card, 
-    borderRadius: Theme.radius.xl, 
-    padding: Theme.spacing.lg, 
-    marginBottom: Theme.spacing.lg,
-    ...Theme.shadows.soft 
+    backgroundColor: theme.colors.card, 
+    borderRadius: theme.radius.xl, 
+    padding: theme.spacing.lg, 
+    marginBottom: theme.spacing.lg,
+    ...theme.shadows.soft 
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Theme.spacing.lg },
-  cardTitle: { fontSize: 20, fontWeight: '800', color: Theme.colors.text, letterSpacing: -0.5 },
-  dateBadge: { backgroundColor: Theme.colors.background, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-  dateText: { fontSize: 12, fontWeight: '700', color: Theme.colors.secondaryText },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.lg },
+  cardTitle: { fontSize: 20, fontWeight: '800', color: theme.colors.text, letterSpacing: -0.5 },
+  dateBadge: { backgroundColor: theme.colors.background, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  dateText: { fontSize: 12, fontWeight: '700', color: theme.colors.secondaryText },
   progressContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   circleWrapper: { width: 160, height: 160, justifyContent: 'center', alignItems: 'center' },
   circleOverlay: { position: 'absolute', alignItems: 'center' },
-  caloriesText: { fontSize: 38, fontWeight: '900', color: Theme.colors.text, letterSpacing: -1 },
-  caloriesLabel: { fontSize: 12, fontWeight: '700', color: Theme.colors.secondaryText, marginTop: -4 },
-  statsColumn: { flex: 1, marginLeft: Theme.spacing.lg, gap: Theme.spacing.md },
+  caloriesText: { fontSize: 38, fontWeight: '900', color: theme.colors.text, letterSpacing: -1 },
+  caloriesLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.secondaryText, marginTop: -4 },
+  statsColumn: { flex: 1, marginLeft: theme.spacing.lg, gap: theme.spacing.md },
   miniStat: { flexDirection: 'row', alignItems: 'center' },
   miniIcon: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  miniLabel: { fontSize: 11, fontWeight: '600', color: Theme.colors.secondaryText },
-  miniValue: { fontSize: 15, fontWeight: '800', color: Theme.colors.text },
-  macrosRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Theme.spacing.xl, gap: Theme.spacing.sm },
-  macroCard: { flex: 1, backgroundColor: Theme.colors.card, borderRadius: Theme.radius.lg, padding: Theme.spacing.md, ...Theme.shadows.soft },
+  miniLabel: { fontSize: 11, fontWeight: '600', color: theme.colors.secondaryText },
+  miniValue: { fontSize: 15, fontWeight: '800', color: theme.colors.text },
+  macrosRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: theme.spacing.xl, gap: theme.spacing.sm },
+  macroCard: { flex: 1, backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, padding: theme.spacing.md, ...theme.shadows.soft },
   macroIcon: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   macroIconText: { fontSize: 12, fontWeight: '800' },
-  macroValue: { fontSize: 18, fontWeight: '900', color: Theme.colors.text, letterSpacing: -0.5 },
-  macroLabel: { fontSize: 11, fontWeight: '600', color: Theme.colors.secondaryText },
-  macroProgressContainer: { height: 4, width: '100%', backgroundColor: Theme.colors.background, borderRadius: 2, marginTop: 8, overflow: 'hidden' },
+  macroValue: { fontSize: 18, fontWeight: '900', color: theme.colors.text, letterSpacing: -0.5 },
+  macroLabel: { fontSize: 11, fontWeight: '600', color: theme.colors.secondaryText },
+  macroProgressContainer: { height: 4, width: '100%', backgroundColor: theme.colors.background, borderRadius: 2, marginTop: 8, overflow: 'hidden' },
   macroProgressBar: { height: '100%', borderRadius: 2 },
-  quickActions: { flexDirection: 'row', gap: Theme.spacing.md, marginBottom: Theme.spacing.xl },
-  actionBtn: { flex: 1, backgroundColor: Theme.colors.card, borderRadius: Theme.radius.lg, padding: Theme.spacing.md, alignItems: 'center', ...Theme.shadows.soft },
+  quickActions: { flexDirection: 'row', gap: theme.spacing.md, marginBottom: theme.spacing.xl },
+  actionBtn: { flex: 1, backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, padding: theme.spacing.md, alignItems: 'center', ...theme.shadows.soft },
   actionIcon: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  actionLabel: { fontSize: 12, fontWeight: '700', color: Theme.colors.text },
+  actionLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.text },
   aiCard: {
-    backgroundColor: Theme.colors.card,
-    borderRadius: Theme.radius.xl,
-    padding: Theme.spacing.md,
-    marginBottom: Theme.spacing.xl,
-    ...Theme.shadows.soft,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.xl,
+    ...theme.shadows.soft,
   },
   aiCardContent: {
     flexDirection: 'row',
@@ -395,10 +415,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Theme.spacing.md,
+    marginRight: theme.spacing.md,
   },
   aiTextContainer: {
     flex: 1,
@@ -406,44 +426,45 @@ const styles = StyleSheet.create({
   aiTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Theme.colors.text,
+    color: theme.colors.text,
   },
   aiSub: {
     fontSize: 13,
-    color: Theme.colors.secondaryText,
+    color: theme.colors.secondaryText,
     marginTop: 2,
   },
-  waterCard: { backgroundColor: Theme.colors.card, borderRadius: Theme.radius.xl, padding: Theme.spacing.lg, marginBottom: Theme.spacing.xl, ...Theme.shadows.soft },
-  waterHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Theme.spacing.md },
+  waterCard: { backgroundColor: theme.colors.card, borderRadius: theme.radius.xl, padding: theme.spacing.lg, marginBottom: theme.spacing.xl, ...theme.shadows.soft },
+  waterHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md },
   waterTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  waterTitle: { fontSize: 18, fontWeight: '800', color: Theme.colors.text },
-  waterGoal: { fontSize: 12, fontWeight: '600', color: Theme.colors.secondaryText },
-  waterContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Theme.spacing.md },
+  waterTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.text },
+  waterGoal: { fontSize: 12, fontWeight: '600', color: theme.colors.secondaryText },
+  waterContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md },
   waterInfo: { flex: 1 },
-  waterValue: { fontSize: 28, fontWeight: '900', color: Theme.colors.text, letterSpacing: -0.5 },
-  waterSub: { fontSize: 12, color: Theme.colors.secondaryText },
+  waterValue: { fontSize: 28, fontWeight: '900', color: theme.colors.text, letterSpacing: -0.5 },
+  waterSub: { fontSize: 12, color: theme.colors.secondaryText },
   waterControls: { flexDirection: 'row', gap: 8 },
-  addWaterBtn: { backgroundColor: Theme.colors.blue, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, gap: 6 },
+  addWaterBtn: { backgroundColor: theme.colors.blue, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, gap: 6 },
   addWaterText: { color: 'white', fontWeight: '800', fontSize: 14 },
-  waterProgressBg: { height: 8, backgroundColor: Theme.colors.background, borderRadius: 4, overflow: 'hidden' },
-  waterProgressBar: { height: '100%', backgroundColor: Theme.colors.blue },
-  sectionHeader: { marginBottom: Theme.spacing.md },
-  sectionTitle: { fontSize: 22, fontWeight: '800', color: Theme.colors.text, letterSpacing: -0.5 },
-  mealCard: { flexDirection: 'row', backgroundColor: Theme.colors.card, borderRadius: Theme.radius.lg, padding: Theme.spacing.md, marginBottom: Theme.spacing.sm, alignItems: 'center', ...Theme.shadows.soft },
-  mealImageContainer: { ...Theme.shadows.soft },
+  waterProgressBg: { height: 8, backgroundColor: theme.colors.background, borderRadius: 4, overflow: 'hidden' },
+  waterProgressBar: { height: '100%', backgroundColor: theme.colors.blue },
+  sectionHeader: { marginBottom: theme.spacing.md },
+  sectionTitle: { fontSize: 22, fontWeight: '800', color: theme.colors.text, letterSpacing: -0.5 },
+  mealCard: { flexDirection: 'row', backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, padding: theme.spacing.md, marginBottom: theme.spacing.sm, alignItems: 'center', ...theme.shadows.soft },
+  mealImageContainer: { ...theme.shadows.soft },
   mealImage: { width: 50, height: 50, borderRadius: 10 },
-  mealImagePlaceholder: { width: 50, height: 50, borderRadius: 10, backgroundColor: Theme.colors.background, justifyContent: 'center', alignItems: 'center' },
-  mealInfo: { marginLeft: Theme.spacing.md, flex: 1 },
-  mealName: { fontSize: 16, fontWeight: '700', color: Theme.colors.text },
-  mealCals: { fontSize: 14, fontWeight: '600', color: Theme.colors.primary },
+  mealImagePlaceholder: { width: 50, height: 50, borderRadius: 10, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' },
+  mealInfo: { marginLeft: theme.spacing.md, flex: 1 },
+  mealName: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
+  servingsBadge: { fontSize: 12, fontWeight: '800', color: theme.colors.primary, backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 8 },
+  mealCals: { fontSize: 14, fontWeight: '600', color: theme.colors.primary },
   emptyCard: { padding: 40, alignItems: 'center', opacity: 0.5 },
-  emptyText: { marginTop: 10, color: Theme.colors.secondaryText, fontWeight: '600' },
+  emptyText: { marginTop: 10, color: theme.colors.secondaryText, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: Theme.colors.card, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: Theme.spacing.xl },
+  modalContent: { backgroundColor: theme.colors.card, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: theme.spacing.xl },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 22, fontWeight: '800' },
-  input: { backgroundColor: Theme.colors.background, borderRadius: 12, padding: 15, marginBottom: 15, fontSize: 16, fontWeight: '600' },
+  modalTitle: { fontSize: 22, fontWeight: '800', color: theme.colors.text },
+  input: { backgroundColor: theme.colors.background, borderRadius: 12, padding: 15, marginBottom: 15, fontSize: 16, fontWeight: '600', color: theme.colors.text },
   macrosInputRow: { flexDirection: 'row', gap: 10 },
-  submitBtn: { backgroundColor: Theme.colors.primary, padding: 18, borderRadius: 15, alignItems: 'center', marginTop: 10 },
+  submitBtn: { backgroundColor: theme.colors.primary, padding: 18, borderRadius: 15, alignItems: 'center', marginTop: 10 },
   submitBtnText: { color: 'white', fontSize: 18, fontWeight: '800' },
 });

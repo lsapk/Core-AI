@@ -1,25 +1,32 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Alert, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Alert, Dimensions, TextInput, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Camera } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { BlurView } from 'expo-blur';
 import { View as MotiView, AnimatePresence } from 'moti';
-import { X, Zap, ScanBarcode, Camera as CameraIcon, Loader2 } from 'lucide-react-native';
+import { X, Zap, ScanBarcode, Camera as CameraIcon, Loader2, Check, Type } from 'lucide-react-native';
 import { analyzeMealImage } from '../services/gemini';
 import { fetchProductByBarcode } from '../services/openFoodFacts';
 import { useStore } from '../store/useStore';
-import { Theme } from '../utils/Theme';
+import { useAppTheme } from '../utils/Theme';
 
 const { width, height } = Dimensions.get('window');
 
 export default function CameraScreen({ onComplete }: { onComplete: () => void }) {
+  const theme = useAppTheme();
+  const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
-  const [permission, requestPermission] = Camera.useCameraPermissions();
+  const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [base64Image, setBase64Image] = useState<string | null>(null);
+  const [extraDetails, setExtraDetails] = useState('');
+  const [isScanningBarcode, setIsScanningBarcode] = useState(false);
   const [flash, setFlash] = useState<'off' | 'on'>('off');
-  const cameraRef = useRef<Camera>(null);
+  const [analysisResult, setAnalysisResult] = useState<any | null>(null);
+  const [servings, setServings] = useState('1');
+  const cameraRef = useRef<CameraView>(null);
   const addMeal = useStore(state => state.addMeal);
   const profile = useStore(state => state.profile);
 
@@ -33,7 +40,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
           style={styles.permissionCard}
         >
           <View style={styles.permissionIcon}>
-            <CameraIcon size={40} color={Theme.colors.primary} />
+            <CameraIcon size={40} color={theme.colors.primary} />
           </View>
           <Text style={styles.permissionTitle}>Camera Access</Text>
           <Text style={styles.permissionText}>We need camera access to analyze your meals and track your nutrition.</Text>
@@ -45,37 +52,24 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
     );
   }
 
-  const handleBarcodeScan = async () => {
-    Alert.prompt(
-      "Scan Barcode",
-      "Enter barcode number:",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Search", 
-          onPress: async (barcode) => {
-            if (!barcode) return;
-            try {
-              setIsProcessing(true);
-              const product = await fetchProductByBarcode(barcode);
-              await addMeal({
-                date: new Date().toISOString(),
-                foodName: product.foodName,
-                calories: product.calories,
-                protein: product.protein,
-                carbs: product.carbs,
-                fat: product.fat,
-              });
-              onComplete();
-            } catch (error) {
-              Alert.alert("Error", "Product not found or error fetching data.");
-            } finally {
-              setIsProcessing(false);
-            }
-          }
-        }
-      ]
-    );
+  const handleBarcodeScan = () => {
+    setServings('1');
+    setIsScanningBarcode(true);
+  };
+
+  const onBarcodeScanned = async (result: any) => {
+    if (isProcessing || !isScanningBarcode) return;
+    try {
+      setIsProcessing(true);
+      setIsScanningBarcode(false);
+      const product = await fetchProductByBarcode(result.data);
+      setServings('1');
+      setAnalysisResult(product);
+    } catch (error) {
+      Alert.alert("Error", "Product not found or error fetching data.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const takePicture = async () => {
@@ -95,26 +89,60 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
       setPreview(manipResult.uri);
 
       if (manipResult.base64) {
-        const result = await analyzeMealImage(manipResult.base64, 'image/jpeg', profile?.goal);
-        
-        // Upload image to Supabase Storage
-        const publicUrl = await useStore.getState().uploadImage(manipResult.base64);
-        
-        await addMeal({
-          date: new Date().toISOString(),
-          foodName: result.foodName,
-          calories: result.calories,
-          protein: result.protein,
-          carbs: result.carbs,
-          fat: result.fat,
-          imageUrl: publicUrl || undefined
-        });
-        onComplete();
+        setBase64Image(manipResult.base64);
       }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Error taking picture. Please try again.");
+      setPreview(null);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const analyzeMeal = async () => {
+    if (!base64Image) return;
+    try {
+      setIsProcessing(true);
+      const result = await analyzeMealImage(base64Image, 'image/jpeg', profile?.goal, extraDetails);
+      
+      // Upload image to Supabase Storage
+      const publicUrl = await useStore.getState().uploadImage(base64Image);
+      
+      setServings('1');
+      setAnalysisResult({
+        ...result,
+        imageUrl: publicUrl || undefined
+      });
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Error analyzing image. Please try again.");
       setPreview(null);
+      setBase64Image(null);
+      setExtraDetails('');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const confirmMeal = async () => {
+    if (!analysisResult) return;
+    const qty = parseFloat(servings) || 1;
+    try {
+      setIsProcessing(true);
+      await addMeal({
+        date: new Date().toISOString(),
+        foodName: analysisResult.foodName,
+        calories: analysisResult.calories * qty,
+        protein: analysisResult.protein * qty,
+        carbs: analysisResult.carbs * qty,
+        fat: analysisResult.fat * qty,
+        servings: qty,
+        imageUrl: analysisResult.imageUrl
+      });
+      onComplete();
+    } catch (error) {
+      Alert.alert("Error", "Failed to save meal.");
     } finally {
       setIsProcessing(false);
     }
@@ -122,15 +150,22 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
 
   return (
     <View style={styles.container}>
-      <View style={styles.cameraWrapper}>
+      <KeyboardAvoidingView 
+        style={styles.cameraWrapper}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         {preview ? (
           <Image source={{ uri: preview }} style={styles.previewImage} />
         ) : (
-          <Camera 
+          <CameraView 
             style={StyleSheet.absoluteFill} 
             ref={cameraRef} 
-            type={"back" as any}
-            flashMode={flash === 'on' ? ("torch" as any) : ("off" as any)}
+            facing={"back" as any}
+            enableTorch={flash === 'on'}
+            barcodeScannerSettings={isScanningBarcode ? {
+              barcodeTypes: ["qr", "ean13", "ean8", "upc_e", "upc_a"],
+            } : undefined}
+            onBarcodeScanned={isScanningBarcode ? onBarcodeScanned : undefined}
           />
         )}
 
@@ -138,7 +173,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
         <View style={[styles.topControls, { paddingTop: insets.top || 20 }]}>
           <TouchableOpacity 
             style={styles.iconButton} 
-            onPress={onComplete}
+            onPress={isScanningBarcode ? () => setIsScanningBarcode(false) : onComplete}
             activeOpacity={0.7}
           >
             <BlurView intensity={40} tint="dark" style={styles.blurIcon}>
@@ -152,40 +187,132 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
             activeOpacity={0.7}
           >
             <BlurView intensity={40} tint="dark" style={styles.blurIcon}>
-              <Zap size={24} color={flash === 'on' ? Theme.colors.orange : "white"} fill={flash === 'on' ? Theme.colors.orange : "transparent"} />
+              <Zap size={24} color={flash === 'on' ? theme.colors.orange : "white"} fill={flash === 'on' ? theme.colors.orange : "transparent"} />
             </BlurView>
           </TouchableOpacity>
         </View>
 
         {/* Bottom Controls */}
         <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 20 }]}>
-          <TouchableOpacity 
-            style={styles.sideButton} 
-            onPress={handleBarcodeScan}
-            activeOpacity={0.7}
-          >
-            <BlurView intensity={40} tint="dark" style={styles.blurSideButton}>
-              <ScanBarcode size={24} color="white" />
-              <Text style={styles.sideButtonText}>Barcode</Text>
-            </BlurView>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.captureButton} 
-            onPress={takePicture}
-            disabled={isProcessing}
-            activeOpacity={0.8}
-          >
-            <View style={styles.captureOuter}>
-              <MotiView 
-                animate={{ scale: isProcessing ? 0.8 : 1 } as any}
-                style={styles.captureInner} 
-              />
+          {preview ? (
+            <View style={styles.previewControls}>
+              <View style={styles.inputContainer}>
+                <Type size={20} color={theme.colors.secondaryText} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Add details (e.g. 'with olive oil')"
+                  placeholderTextColor={theme.colors.secondaryText}
+                  value={extraDetails}
+                  onChangeText={setExtraDetails}
+                  multiline
+                />
+              </View>
+              <TouchableOpacity 
+                style={styles.confirmButton} 
+                onPress={analyzeMeal}
+                disabled={isProcessing}
+                activeOpacity={0.8}
+              >
+                <Check size={24} color="white" />
+                <Text style={styles.confirmButtonText}>Analyze</Text>
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          ) : (
+            <>
+              {!isScanningBarcode ? (
+                <>
+                  <TouchableOpacity 
+                    style={styles.sideButton} 
+                    onPress={handleBarcodeScan}
+                    activeOpacity={0.7}
+                  >
+                    <BlurView intensity={40} tint="dark" style={styles.blurSideButton}>
+                      <ScanBarcode size={24} color="white" />
+                      <Text style={styles.sideButtonText}>Barcode</Text>
+                    </BlurView>
+                  </TouchableOpacity>
 
-          <View style={styles.sideButtonPlaceholder} />
+                  <TouchableOpacity 
+                    style={styles.captureButton} 
+                    onPress={takePicture}
+                    disabled={isProcessing}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.captureOuter}>
+                      <MotiView 
+                        animate={{ scale: isProcessing ? 0.8 : 1 } as any}
+                        style={styles.captureInner} 
+                      />
+                    </View>
+                  </TouchableOpacity>
+
+                  <View style={styles.sideButtonPlaceholder} />
+                </>
+              ) : (
+                <View style={styles.scanningOverlay}>
+                  <Text style={styles.scanningText}>Point camera at barcode</Text>
+                </View>
+              )}
+            </>
+          )}
         </View>
+
+        {/* Analysis Result Modal */}
+        <Modal visible={!!analysisResult} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <MotiView 
+              from={{ opacity: 0, scale: 0.9 } as any}
+              animate={{ opacity: 1, scale: 1 } as any}
+              style={styles.resultCard}
+            >
+              <View style={styles.resultHeader}>
+                <Text style={styles.resultTitle}>Vérification</Text>
+                <TouchableOpacity onPress={() => setAnalysisResult(null)}>
+                  <X size={24} color={theme.colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.foodName}>{analysisResult?.foodName}</Text>
+              
+              <View style={styles.resultStats}>
+                <View style={styles.resultStat}>
+                  <Text style={styles.statValue}>{Math.round(analysisResult?.calories * (parseFloat(servings) || 1))}</Text>
+                  <Text style={styles.statLabel}>kcal</Text>
+                </View>
+                <View style={styles.resultStat}>
+                  <Text style={styles.statValue}>{Math.round(analysisResult?.protein * (parseFloat(servings) || 1))}g</Text>
+                  <Text style={styles.statLabel}>Prot</Text>
+                </View>
+                <View style={styles.resultStat}>
+                  <Text style={styles.statValue}>{Math.round(analysisResult?.carbs * (parseFloat(servings) || 1))}g</Text>
+                  <Text style={styles.statLabel}>Gluc</Text>
+                </View>
+                <View style={styles.resultStat}>
+                  <Text style={styles.statValue}>{Math.round(analysisResult?.fat * (parseFloat(servings) || 1))}g</Text>
+                  <Text style={styles.statLabel}>Lip</Text>
+                </View>
+              </View>
+
+              <View style={styles.quantityContainer}>
+                <Text style={styles.quantityLabel}>Quantité / Portions</Text>
+                <View style={styles.quantityInputWrapper}>
+                  <TextInput
+                    style={styles.quantityInput}
+                    keyboardType="numeric"
+                    value={servings}
+                    onChangeText={setServings}
+                  />
+                  <Text style={styles.quantityUnit}>portion(s)</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.confirmResultBtn} onPress={confirmMeal}>
+                <Check size={20} color="white" />
+                <Text style={styles.confirmResultBtnText}>Confirmer</Text>
+              </TouchableOpacity>
+            </MotiView>
+          </View>
+        </Modal>
 
         {/* Processing Overlay */}
         <AnimatePresence>
@@ -212,19 +339,19 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
             </MotiView>
           )}
         </AnimatePresence>
-      </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: 'black',
   },
   cameraWrapper: {
     flex: 1,
-    borderRadius: Theme.radius.xl,
+    borderRadius: theme.radius.xl,
     overflow: 'hidden',
   },
   previewImage: {
@@ -232,17 +359,17 @@ const styles = StyleSheet.create({
   },
   permissionContainer: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: theme.colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Theme.spacing.xl,
+    padding: theme.spacing.xl,
   },
   permissionCard: {
-    backgroundColor: Theme.colors.card,
-    borderRadius: Theme.radius.xl,
-    padding: Theme.spacing.xl,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.xl,
     alignItems: 'center',
-    ...Theme.shadows.medium,
+    ...theme.shadows.medium,
   },
   permissionIcon: {
     width: 80,
@@ -251,26 +378,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
   },
   permissionTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: Theme.colors.text,
-    marginBottom: Theme.spacing.sm,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
   },
   permissionText: {
     fontSize: 15,
-    color: Theme.colors.secondaryText,
+    color: theme.colors.secondaryText,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: Theme.spacing.xl,
+    marginBottom: theme.spacing.xl,
   },
   grantButton: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: theme.colors.primary,
     paddingVertical: 14,
-    paddingHorizontal: Theme.spacing.xl,
-    borderRadius: Theme.radius.lg,
+    paddingHorizontal: theme.spacing.xl,
+    borderRadius: theme.radius.lg,
     width: '100%',
     alignItems: 'center',
   },
@@ -286,7 +413,7 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: Theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
   },
   iconButton: {
     width: 44,
@@ -306,7 +433,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Theme.spacing.xl,
+    paddingHorizontal: theme.spacing.xl,
   },
   captureButton: {
     width: 84,
@@ -349,6 +476,47 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
   },
+  previewControls: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: theme.spacing.md,
+  },
+  inputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  inputIcon: {
+    marginRight: theme.spacing.sm,
+  },
+  input: {
+    flex: 1,
+    color: 'white',
+    fontSize: 15,
+    maxHeight: 100,
+  },
+  confirmButton: {
+    backgroundColor: theme.colors.primary,
+    height: 50,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.radius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontWeight: '700',
+    marginLeft: 8,
+    fontSize: 16,
+  },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 10,
@@ -357,7 +525,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Theme.spacing.xl,
+    padding: theme.spacing.xl,
   },
   loadingText: {
     color: 'white',
@@ -371,5 +539,117 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginTop: 8,
     textAlign: 'center',
+  },
+  scanningOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: theme.spacing.xl,
+  },
+  scanningText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.xl,
+  },
+  resultCard: {
+    width: '100%',
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.xl,
+    ...theme.shadows.soft,
+  },
+  resultHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  resultTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  foodName: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xl,
+    letterSpacing: -0.5,
+  },
+  resultStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing.xl,
+    paddingVertical: theme.spacing.md,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: theme.colors.separator,
+  },
+  resultStat: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.secondaryText,
+    marginTop: 2,
+  },
+  quantityContainer: {
+    marginBottom: theme.spacing.xl,
+  },
+  quantityLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.secondaryText,
+    marginBottom: 8,
+  },
+  quantityInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.radius.lg,
+    paddingHorizontal: theme.spacing.md,
+    height: 54,
+  },
+  quantityInput: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  quantityUnit: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.secondaryText,
+    marginLeft: 8,
+  },
+  confirmResultBtn: {
+    backgroundColor: theme.colors.primary,
+    height: 56,
+    borderRadius: theme.radius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  confirmResultBtnText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '800',
   },
 });

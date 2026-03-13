@@ -13,12 +13,14 @@ import ChatScreen from './src/components/ChatScreen';
 import AuthScreen from './src/components/AuthScreen';
 import OnboardingScreen from './src/components/OnboardingScreen';
 import { useStore } from './src/store/useStore';
-import { Theme } from './src/utils/Theme';
+import { useAppTheme } from './src/utils/Theme';
 import { supabase } from './src/services/supabase';
 
 const { width } = Dimensions.get('window');
 
 function AppContent() {
+  const theme = useAppTheme();
+  const styles = getStyles(theme);
   const [activeTab, setActiveTab] = useState<'home' | 'chat' | 'camera' | 'history' | 'profile'>('home');
   const insets = useSafeAreaInsets();
   const { user, profile, setUser, isLoading } = useStore();
@@ -46,7 +48,7 @@ function AppContent() {
   if (!profile) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Theme.colors.primary} />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -74,9 +76,10 @@ function AppContent() {
             animate={{ opacity: 1, translateY: 0 } as any}
             style={styles.headerLogo}
           >
-            <View style={styles.logoIcon}>
-              <Activity size={18} color="white" strokeWidth={3} />
-            </View>
+            <Image 
+              source={require('./assets/logo.png')} 
+              style={styles.logoImage} 
+            />
             <Text style={styles.headerTitle}>Core AI</Text>
           </MotiView>
         </View>
@@ -108,7 +111,7 @@ function AppContent() {
           >
             <Home 
               size={22} 
-              color={activeTab === 'home' ? Theme.colors.primary : Theme.colors.secondaryText} 
+              color={activeTab === 'home' ? theme.colors.primary : theme.colors.secondaryText} 
               strokeWidth={activeTab === 'home' ? 2.5 : 2}
             />
             <Text style={[styles.navText, activeTab === 'home' && styles.navTextActive]}>Home</Text>
@@ -121,7 +124,7 @@ function AppContent() {
           >
             <MessageSquare 
               size={22} 
-              color={activeTab === 'chat' ? Theme.colors.primary : Theme.colors.secondaryText} 
+              color={activeTab === 'chat' ? theme.colors.primary : theme.colors.secondaryText} 
               strokeWidth={activeTab === 'chat' ? 2.5 : 2}
             />
             <Text style={[styles.navText, activeTab === 'chat' && styles.navTextActive]}>AI Chat</Text>
@@ -149,7 +152,7 @@ function AppContent() {
           >
             <List 
               size={22} 
-              color={activeTab === 'history' ? Theme.colors.primary : Theme.colors.secondaryText} 
+              color={activeTab === 'history' ? theme.colors.primary : theme.colors.secondaryText} 
               strokeWidth={activeTab === 'history' ? 2.5 : 2}
             />
             <Text style={[styles.navText, activeTab === 'history' && styles.navTextActive]}>History</Text>
@@ -162,7 +165,7 @@ function AppContent() {
           >
             <User 
               size={22} 
-              color={activeTab === 'profile' ? Theme.colors.primary : Theme.colors.secondaryText} 
+              color={activeTab === 'profile' ? theme.colors.primary : theme.colors.secondaryText} 
               strokeWidth={activeTab === 'profile' ? 2.5 : 2}
             />
             <Text style={[styles.navText, activeTab === 'profile' && styles.navTextActive]}>Profile</Text>
@@ -181,24 +184,24 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: Theme.colors.background 
+    backgroundColor: theme.colors.background 
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Theme.colors.background,
+    backgroundColor: theme.colors.background,
   },
   main: {
     flex: 1,
   },
   header: { 
-    paddingHorizontal: Theme.spacing.lg, 
-    paddingTop: Theme.spacing.sm,
-    paddingBottom: Theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg, 
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -210,17 +213,23 @@ const styles = StyleSheet.create({
   logoIcon: { 
     width: 32, 
     height: 32, 
-    backgroundColor: Theme.colors.primary, 
+    backgroundColor: theme.colors.primary, 
     borderRadius: 10, 
     justifyContent: 'center', 
     alignItems: 'center', 
     marginRight: 10,
-    ...Theme.shadows.soft,
+    ...theme.shadows.soft,
+  },
+  logoImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    marginRight: 10,
   },
   headerTitle: { 
     fontSize: 28, 
     fontWeight: '800', 
-    color: Theme.colors.text,
+    color: theme.colors.text,
     letterSpacing: -0.5,
   },
   content: { 
@@ -242,7 +251,7 @@ const styles = StyleSheet.create({
     height: 60, 
     alignItems: 'center', 
     justifyContent: 'space-around',
-    paddingHorizontal: Theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
   },
   navItem: { 
     alignItems: 'center', 
@@ -251,12 +260,12 @@ const styles = StyleSheet.create({
   },
   navText: { 
     fontSize: 11, 
-    color: Theme.colors.secondaryText, 
+    color: theme.colors.secondaryText, 
     marginTop: 4, 
     fontWeight: '600' 
   },
   navTextActive: { 
-    color: Theme.colors.primary 
+    color: theme.colors.primary 
   },
   cameraButton: {
     width: 70,
@@ -269,9 +278,9 @@ const styles = StyleSheet.create({
     width: 60, 
     height: 60, 
     borderRadius: 30, 
-    backgroundColor: Theme.colors.primary, 
+    backgroundColor: theme.colors.primary, 
     justifyContent: 'center', 
     alignItems: 'center', 
-    ...Theme.shadows.medium,
+    ...theme.shadows.medium,
   },
 });

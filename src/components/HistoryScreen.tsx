@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, Alert } fr
 import { View as MotiView } from 'moti';
 import { FlashList } from '@shopify/flash-list';
 import { useStore } from '../store/useStore';
-import { Theme } from '../utils/Theme';
+import { useAppTheme } from '../utils/Theme';
 import { Trash2, Calendar, Utensils } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 export default function HistoryScreen() {
+  const theme = useAppTheme();
+  const styles = getStyles(theme);
   const { meals, removeMeal } = useStore();
 
   const handleDelete = (id: string, name: string) => {
@@ -83,15 +85,20 @@ export default function HistoryScreen() {
                       <Image source={{ uri: meal.imageUrl }} style={styles.mealImage} />
                     ) : (
                       <View style={styles.mealImagePlaceholder}>
-                        <Utensils size={20} color={Theme.colors.secondaryText} />
+                        <Utensils size={20} color={theme.colors.secondaryText} />
                       </View>
                     )}
                   </View>
                   
                   <View style={styles.mealInfo}>
-                    <Text style={styles.mealName} numberOfLines={1}>{meal.foodName}</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={[styles.mealName, { flex: 1 }]} numberOfLines={1}>{meal.foodName}</Text>
+                      {meal.servings > 0 && (
+                        <Text style={styles.servingsText}>x{meal.servings}</Text>
+                      )}
+                    </View>
                     <View style={styles.macrosRow}>
-                      <Text style={[styles.macroText, { color: Theme.colors.primary }]}>{meal.calories} kcal</Text>
+                      <Text style={[styles.macroText, { color: theme.colors.primary }]}>{meal.calories} kcal</Text>
                       <View style={styles.dot} />
                       <Text style={styles.macroText}>P: {Math.round(meal.protein)}g</Text>
                       <View style={styles.dot} />
@@ -103,7 +110,7 @@ export default function HistoryScreen() {
                     onPress={() => handleDelete(meal.id, meal.foodName)} 
                     style={styles.deleteButton}
                   >
-                    <Trash2 size={18} color={Theme.colors.red} opacity={0.6} />
+                    <Trash2 size={18} color={theme.colors.red} opacity={0.6} />
                   </TouchableOpacity>
                 </TouchableOpacity>
               ))}
@@ -111,7 +118,7 @@ export default function HistoryScreen() {
           ),
           ListEmptyComponent: (
             <View style={styles.emptyContainer}>
-              <Calendar size={64} color={Theme.colors.secondaryText} opacity={0.3} />
+              <Calendar size={64} color={theme.colors.secondaryText} opacity={0.3} />
               <Text style={styles.emptyTitle}>Rien ici pour le moment</Text>
               <Text style={styles.emptySub}>Tes repas apparaîtront ici une fois enregistrés.</Text>
             </View>
@@ -122,40 +129,41 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.background },
-  header: { padding: Theme.spacing.lg, paddingBottom: 0 },
-  title: { fontSize: 34, fontWeight: '800', color: Theme.colors.text, letterSpacing: -1 },
-  listContent: { padding: Theme.spacing.lg, paddingBottom: 120 },
-  dayGroup: { marginBottom: Theme.spacing.xl },
+const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  header: { padding: theme.spacing.lg, paddingBottom: 0 },
+  title: { fontSize: 34, fontWeight: '800', color: theme.colors.text, letterSpacing: -1 },
+  listContent: { padding: theme.spacing.lg, paddingBottom: 120 },
+  dayGroup: { marginBottom: theme.spacing.xl },
   dayHeader: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    marginBottom: Theme.spacing.md 
+    marginBottom: theme.spacing.md 
   },
-  dayTitle: { fontSize: 18, fontWeight: '700', color: Theme.colors.text, textTransform: 'capitalize' },
+  dayTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text, textTransform: 'capitalize' },
   dayBadge: { backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  dayCalsText: { color: Theme.colors.primary, fontWeight: '700', fontSize: 13 },
+  dayCalsText: { color: theme.colors.primary, fontWeight: '700', fontSize: 13 },
   mealCard: { 
     flexDirection: 'row', 
-    backgroundColor: Theme.colors.card, 
-    borderRadius: Theme.radius.lg, 
-    padding: Theme.spacing.md, 
-    marginBottom: Theme.spacing.sm, 
+    backgroundColor: theme.colors.card, 
+    borderRadius: theme.radius.lg, 
+    padding: theme.spacing.md, 
+    marginBottom: theme.spacing.sm, 
     alignItems: 'center', 
-    ...Theme.shadows.soft 
+    ...theme.shadows.soft 
   },
-  mealImageContainer: { ...Theme.shadows.soft },
+  mealImageContainer: { ...theme.shadows.soft },
   mealImage: { width: 54, height: 54, borderRadius: 12 },
-  mealImagePlaceholder: { width: 54, height: 54, borderRadius: 12, backgroundColor: Theme.colors.background, justifyContent: 'center', alignItems: 'center' },
-  mealInfo: { marginLeft: Theme.spacing.md, flex: 1 },
-  mealName: { fontSize: 16, fontWeight: '700', color: Theme.colors.text, marginBottom: 2 },
+  mealImagePlaceholder: { width: 54, height: 54, borderRadius: 12, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' },
+  mealInfo: { marginLeft: theme.spacing.md, flex: 1 },
+  mealName: { fontSize: 16, fontWeight: '700', color: theme.colors.text, marginBottom: 2 },
+  servingsText: { fontSize: 13, fontWeight: '800', color: theme.colors.primary, backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   macrosRow: { flexDirection: 'row', alignItems: 'center' },
-  macroText: { fontSize: 12, fontWeight: '600', color: Theme.colors.secondaryText },
-  dot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: Theme.colors.separator, marginHorizontal: 6 },
+  macroText: { fontSize: 12, fontWeight: '600', color: theme.colors.secondaryText },
+  dot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: theme.colors.separator, marginHorizontal: 6 },
   deleteButton: { padding: 8 },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 100 },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: Theme.colors.text, marginTop: 20 },
-  emptySub: { fontSize: 15, color: Theme.colors.secondaryText, marginTop: 8, textAlign: 'center', paddingHorizontal: 40 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, marginTop: 20 },
+  emptySub: { fontSize: 15, color: theme.colors.secondaryText, marginTop: 8, textAlign: 'center', paddingHorizontal: 40 },
 });

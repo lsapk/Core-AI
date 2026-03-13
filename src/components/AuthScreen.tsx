@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { supabase } from '../services/supabase';
-import { Theme } from '../utils/Theme';
+import { useAppTheme } from '../utils/Theme';
 import { MotiView } from 'moti';
 import { Activity, Mail, Lock, ArrowRight } from 'lucide-react-native';
 
 export default function AuthScreen() {
+  const theme = useAppTheme();
+  const styles = getStyles(theme);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,9 +47,10 @@ export default function AuthScreen() {
           animate={{ opacity: 1, scale: 1 } as any}
           style={styles.logoContainer}
         >
-          <View style={styles.logoIcon}>
-            <Activity size={40} color="white" strokeWidth={3} />
-          </View>
+          <Image 
+            source={require('../../assets/logo.png')} 
+            style={styles.logoImage} 
+          />
           <Text style={styles.logoText}>Core AI</Text>
           <Text style={styles.logoSub}>Your AI Nutrition Partner</Text>
         </MotiView>
@@ -64,7 +67,7 @@ export default function AuthScreen() {
           </Text>
 
           <View style={styles.inputContainer}>
-            <Mail size={20} color={Theme.colors.secondaryText} style={styles.inputIcon} />
+            <Mail size={20} color={theme.colors.secondaryText} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="Email"
@@ -76,7 +79,7 @@ export default function AuthScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Lock size={20} color={Theme.colors.secondaryText} style={styles.inputIcon} />
+            <Lock size={20} color={theme.colors.secondaryText} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="Password"
@@ -115,14 +118,14 @@ export default function AuthScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: theme.colors.background,
   },
   content: {
     flex: 1,
-    padding: Theme.spacing.xl,
+    padding: theme.spacing.xl,
     justifyContent: 'center',
   },
   logoContainer: {
@@ -132,80 +135,86 @@ const styles = StyleSheet.create({
   logoIcon: {
     width: 80,
     height: 80,
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: theme.colors.primary,
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Theme.shadows.medium,
+    ...theme.shadows.medium,
+    marginBottom: 16,
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
     marginBottom: 16,
   },
   logoText: {
     fontSize: 32,
     fontWeight: '800',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     letterSpacing: -1,
   },
   logoSub: {
     fontSize: 16,
-    color: Theme.colors.secondaryText,
+    color: theme.colors.secondaryText,
     fontWeight: '500',
   },
   form: {
-    backgroundColor: Theme.colors.card,
-    borderRadius: Theme.radius.xl,
-    padding: Theme.spacing.xl,
-    ...Theme.shadows.medium,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.xl,
+    ...theme.shadows.medium,
   },
   title: {
     fontSize: 24,
     fontWeight: '800',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 15,
-    color: Theme.colors.secondaryText,
+    color: theme.colors.secondaryText,
     marginBottom: 24,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.colors.background,
-    borderRadius: Theme.radius.md,
-    paddingHorizontal: Theme.spacing.md,
-    marginBottom: Theme.spacing.md,
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.md,
     height: 56,
   },
   inputIcon: {
-    marginRight: Theme.spacing.sm,
+    marginRight: theme.spacing.sm,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: Theme.colors.text,
+    color: theme.colors.text,
   },
   button: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: theme.colors.primary,
     height: 56,
-    borderRadius: Theme.radius.md,
+    borderRadius: theme.radius.md,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: Theme.spacing.md,
-    ...Theme.shadows.soft,
+    marginTop: theme.spacing.md,
+    ...theme.shadows.soft,
   },
   buttonText: {
     color: 'white',
     fontSize: 18,
     fontWeight: '700',
-    marginRight: Theme.spacing.sm,
+    marginRight: theme.spacing.sm,
   },
   switchButton: {
-    marginTop: Theme.spacing.xl,
+    marginTop: theme.spacing.xl,
     alignItems: 'center',
   },
   switchText: {
-    color: Theme.colors.secondaryText,
+    color: theme.colors.secondaryText,
     fontSize: 14,
     fontWeight: '600',
   },

@@ -2,12 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { View as MotiView } from 'moti';
 import { FlashList } from '@shopify/flash-list';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore, ChatMessage } from '../store/useStore';
-import { Theme } from '../utils/Theme';
+import { useAppTheme } from '../utils/Theme';
 import { Send, Bot } from 'lucide-react-native';
 import { chatWithAI } from '../services/gemini';
 
 export default function ChatScreen() {
+  const theme = useAppTheme();
+  const styles = getStyles(theme);
+  const insets = useSafeAreaInsets();
   const { messages, addMessage, addMeal, addWater } = useStore();
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -35,6 +39,7 @@ export default function ChatScreen() {
               protein: args.protein || 0,
               carbs: args.carbs || 0,
               fat: args.fat || 0,
+              servings: args.servings || 1,
             });
             addMessage({ role: 'model', text: `J'ai ajouté ${args.foodName} (${args.calories} kcal) à ton journal ! 🥗` });
           } else if (call.name === 'add_water') {
@@ -100,7 +105,7 @@ export default function ChatScreen() {
           ),
           ListEmptyComponent: (
             <View style={styles.emptyContainer}>
-              <Bot size={48} color={Theme.colors.primary} />
+              <Bot size={48} color={theme.colors.primary} />
               <Text style={styles.emptyTitle}>Salut ! Je suis ton assistant Core AI.</Text>
               <Text style={styles.emptySub}>Dis-moi ce que tu as mangé ou bu, ou pose-moi une question sur ta nutrition !</Text>
             </View>
@@ -110,12 +115,12 @@ export default function ChatScreen() {
 
       {isTyping && (
         <View style={styles.typingIndicator}>
-          <ActivityIndicator size="small" color={Theme.colors.primary} />
+          <ActivityIndicator size="small" color={theme.colors.primary} />
           <Text style={styles.typingText}>Core AI réfléchit...</Text>
         </View>
       )}
 
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, { paddingBottom: insets.bottom + 60 + theme.spacing.md }]}>
         <TextInput
           style={styles.input}
           placeholder="Dis-moi tout..."
@@ -136,57 +141,58 @@ export default function ChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.background },
-  listContent: { padding: Theme.spacing.lg, paddingBottom: 20 },
-  messageWrapper: { marginBottom: Theme.spacing.md, maxWidth: '85%' },
+const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  listContent: { padding: theme.spacing.lg, paddingBottom: 20 },
+  messageWrapper: { marginBottom: theme.spacing.md, maxWidth: '85%' },
   userWrapper: { alignSelf: 'flex-end' },
   botWrapper: { alignSelf: 'flex-start' },
   messageBubble: {
-    padding: Theme.spacing.md,
+    padding: theme.spacing.md,
     borderRadius: 20,
-    ...Theme.shadows.soft,
+    ...theme.shadows.soft,
   },
   userBubble: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: theme.colors.primary,
     borderBottomRightRadius: 4,
   },
   botBubble: {
-    backgroundColor: Theme.colors.card,
+    backgroundColor: theme.colors.card,
     borderBottomLeftRadius: 4,
   },
   messageText: { fontSize: 16, lineHeight: 22 },
   userText: { color: 'white', fontWeight: '500' },
-  botText: { color: Theme.colors.text },
+  botText: { color: theme.colors.text },
   timestamp: {
     fontSize: 10,
-    color: Theme.colors.secondaryText,
+    color: theme.colors.secondaryText,
     marginTop: 4,
     marginHorizontal: 4,
   },
   inputContainer: {
     flexDirection: 'row',
-    padding: Theme.spacing.md,
-    backgroundColor: Theme.colors.card,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.card,
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: Theme.colors.background,
+    borderTopColor: theme.colors.background,
   },
   input: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: theme.colors.background,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
     fontSize: 16,
     maxHeight: 100,
     marginRight: 10,
+    color: theme.colors.text,
   },
   sendBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -201,13 +207,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     textAlign: 'center',
     marginTop: 20,
   },
   emptySub: {
     fontSize: 14,
-    color: Theme.colors.secondaryText,
+    color: theme.colors.secondaryText,
     textAlign: 'center',
     marginTop: 10,
     lineHeight: 20,
@@ -215,12 +221,12 @@ const styles = StyleSheet.create({
   typingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
     paddingBottom: 10,
   },
   typingText: {
     fontSize: 12,
-    color: Theme.colors.secondaryText,
+    color: theme.colors.secondaryText,
     marginLeft: 8,
     fontStyle: 'italic',
   },

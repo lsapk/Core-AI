@@ -23,6 +23,7 @@ const addMealTool: FunctionDeclaration = {
       protein: { type: Type.NUMBER, description: "Grams of protein." },
       carbs: { type: Type.NUMBER, description: "Grams of carbohydrates." },
       fat: { type: Type.NUMBER, description: "Grams of fat." },
+      servings: { type: Type.NUMBER, description: "Number of servings or quantity (default 1)." },
     },
     required: ["foodName", "calories"],
   },
@@ -41,9 +42,10 @@ const addWaterTool: FunctionDeclaration = {
   },
 };
 
-export async function analyzeMealImage(base64Image: string, mimeType: string, goal?: string): Promise<NutritionInfo> {
+export async function analyzeMealImage(base64Image: string, mimeType: string, goal?: string, extraDetails?: string): Promise<NutritionInfo> {
   try {
     const goalPrompt = goal ? ` The user's goal is ${goal.replace('_', ' ')}. Provide advice if this meal fits their goal.` : '';
+    const detailsPrompt = extraDetails ? ` Additional details from user: "${extraDetails}". Please take this into account when estimating.` : '';
     
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -54,7 +56,7 @@ export async function analyzeMealImage(base64Image: string, mimeType: string, go
             mimeType: mimeType,
           },
         },
-        `Analyze this image of food. Estimate the macronutrients and calories. Provide a structured JSON response.${goalPrompt}`
+        `Analyze this image of food. Estimate the macronutrients and calories. Provide a structured JSON response.${goalPrompt}${detailsPrompt}`
       ],
       config: {
         responseMimeType: "application/json",

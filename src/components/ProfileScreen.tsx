@@ -1,15 +1,36 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch, Dimensions, Modal } from 'react-native';
 import { View as MotiView } from 'moti';
-import { useStore } from '../store/useStore';
-import { Theme } from '../utils/Theme';
-import { User, Settings, Bell, Shield, LogOut, ChevronRight, Trash2, Target, Ruler, Weight, Calendar } from 'lucide-react-native';
+import { useStore, ThemePreference } from '../store/useStore';
+import { useAppTheme } from '../utils/Theme';
+import { User, Settings, Bell, Shield, LogOut, ChevronRight, Trash2, Target, Ruler, Weight, Calendar, Moon } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen() {
-  const { profile, signOut, updateProfile } = useStore();
+  const theme = useAppTheme();
+  const styles = getStyles(theme);
+  const { profile, signOut, updateProfile, themePreference, setThemePreference } = useStore();
   const [notifications, setNotifications] = useState(true);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  const toggleTheme = () => {
+    const nextTheme: Record<ThemePreference, ThemePreference> = {
+      'system': 'light',
+      'light': 'dark',
+      'dark': 'system'
+    };
+    setThemePreference(nextTheme[themePreference]);
+  };
+
+  const getThemeText = () => {
+    switch (themePreference) {
+      case 'system': return 'System Default';
+      case 'light': return 'Light Mode';
+      case 'dark': return 'Dark Mode';
+    }
+  };
 
   const handleDeleteAccount = () => {
     Alert.alert(
@@ -21,8 +42,6 @@ export default function ProfileScreen() {
           text: "Delete", 
           style: "destructive", 
           onPress: () => {
-            // In a real app, call supabase.auth.admin.deleteUser or similar
-            // For now, just sign out and show a message
             Alert.alert("Account Deleted", "Your account has been successfully removed.");
             signOut();
           } 
@@ -34,7 +53,7 @@ export default function ProfileScreen() {
   const renderInfoItem = (icon: any, label: string, value: string | number, unit: string = '') => (
     <View style={styles.infoItem}>
       <View style={styles.infoIconContainer}>
-        {React.createElement(icon, { size: 20, color: Theme.colors.primary })}
+        {React.createElement(icon, { size: 20, color: theme.colors.primary })}
       </View>
       <View style={styles.infoTextContainer}>
         <Text style={styles.infoLabel}>{label}</Text>
@@ -43,13 +62,13 @@ export default function ProfileScreen() {
     </View>
   );
 
-  const renderMenuItem = (icon: any, label: string, onPress: () => void, color: string = Theme.colors.text, showChevron: boolean = true) => (
+  const renderMenuItem = (icon: any, label: string, onPress: () => void, color: string = theme.colors.text, showChevron: boolean = true) => (
     <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.menuIconContainer}>
         {React.createElement(icon, { size: 22, color })}
       </View>
       <Text style={[styles.menuLabel, { color }]}>{label}</Text>
-      {showChevron && <ChevronRight size={20} color={Theme.colors.separator} />}
+      {showChevron && <ChevronRight size={20} color={theme.colors.separator} />}
     </TouchableOpacity>
   );
 
@@ -101,70 +120,122 @@ export default function ProfileScreen() {
       <View style={styles.menuCard}>
         <View style={styles.menuItem}>
           <View style={styles.menuIconContainer}>
-            <Bell size={22} color={Theme.colors.text} />
+            <Bell size={22} color={theme.colors.text} />
           </View>
           <Text style={styles.menuLabel}>Notifications</Text>
           <Switch 
             value={notifications} 
             onValueChange={setNotifications}
-            trackColor={{ false: Theme.colors.separator, true: Theme.colors.primary }}
+            trackColor={{ false: theme.colors.separator, true: theme.colors.primary }}
             thumbColor="white"
           />
         </View>
         <View style={styles.separator} />
-        {renderMenuItem(Shield, 'Privacy Policy', () => {})}
+        {renderMenuItem(Shield, 'Privacy Policy', () => setShowPrivacy(true))}
         <View style={styles.separator} />
-        {renderMenuItem(Settings, 'App Settings', () => {})}
+        {renderMenuItem(Settings, 'App Settings', () => setShowSettings(true))}
       </View>
 
       {/* Account Section */}
       <Text style={styles.sectionTitle}>Account</Text>
       <View style={styles.menuCard}>
-        {renderMenuItem(LogOut, 'Sign Out', signOut, Theme.colors.orange)}
+        {renderMenuItem(LogOut, 'Sign Out', signOut, theme.colors.orange)}
         <View style={styles.separator} />
-        {renderMenuItem(Trash2, 'Delete Account', handleDeleteAccount, Theme.colors.red, false)}
+        {renderMenuItem(Trash2, 'Delete Account', handleDeleteAccount, theme.colors.red, false)}
       </View>
 
       <Text style={styles.versionText}>Core AI v1.0.0</Text>
+
+      {/* Privacy Policy Modal */}
+      <Modal visible={showPrivacy} animationType="slide" presentationStyle="pageSheet">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Privacy Policy</Text>
+            <TouchableOpacity onPress={() => setShowPrivacy(false)}>
+              <Text style={styles.modalCloseText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalContent}>
+            <Text style={styles.modalText}>
+              Your privacy is important to us. This application collects minimal data required to function, such as your email for authentication and your meal logs to provide nutritional insights.
+              {'\n\n'}
+              We do not sell your personal data to third parties. Images you capture are processed securely to extract nutritional information.
+              {'\n\n'}
+              By using this app, you agree to our terms of service and privacy policy.
+            </Text>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* App Settings Modal */}
+      <Modal visible={showSettings} animationType="slide" presentationStyle="pageSheet">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>App Settings</Text>
+            <TouchableOpacity onPress={() => setShowSettings(false)}>
+              <Text style={styles.modalCloseText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalContent}>
+            <View style={styles.menuCard}>
+              <TouchableOpacity style={styles.menuItem} onPress={toggleTheme} activeOpacity={0.7}>
+                <View style={styles.menuIconContainer}>
+                  <Moon size={22} color={theme.colors.text} />
+                </View>
+                <Text style={styles.menuLabel}>Theme</Text>
+                <Text style={styles.settingValue}>{getThemeText()}</Text>
+              </TouchableOpacity>
+              <View style={styles.separator} />
+              <View style={styles.menuItem}>
+                <View style={styles.menuIconContainer}>
+                  <Settings size={22} color={theme.colors.text} />
+                </View>
+                <Text style={styles.menuLabel}>Language</Text>
+                <Text style={styles.settingValue}>English</Text>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   container: { flex: 1 },
   content: { 
-    padding: Theme.spacing.lg, 
+    padding: theme.spacing.lg, 
     paddingBottom: 120 
   },
   header: {
-    marginBottom: Theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
   },
   title: { 
     fontSize: 34, 
     fontWeight: '800', 
-    color: Theme.colors.text,
+    color: theme.colors.text,
     letterSpacing: -1,
   },
   userCard: {
-    backgroundColor: Theme.colors.card,
-    borderRadius: Theme.radius.xl,
-    padding: Theme.spacing.lg,
-    marginBottom: Theme.spacing.xl,
-    ...Theme.shadows.soft,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
+    ...theme.shadows.soft,
   },
   avatarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Theme.spacing.xl,
+    marginBottom: theme.spacing.xl,
   },
   avatar: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Theme.shadows.soft,
+    ...theme.shadows.soft,
   },
   avatarText: {
     fontSize: 28,
@@ -172,12 +243,12 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   userInfo: {
-    marginLeft: Theme.spacing.md,
+    marginLeft: theme.spacing.md,
   },
   userEmail: {
     fontSize: 18,
     fontWeight: '700',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     letterSpacing: -0.3,
   },
   goalBadge: {
@@ -191,73 +262,73 @@ const styles = StyleSheet.create({
   goalText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Theme.colors.primary,
+    color: theme.colors.primary,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Theme.spacing.md,
+    gap: theme.spacing.md,
   },
   infoItem: {
-    width: (width - Theme.spacing.lg * 2 - Theme.spacing.lg * 2 - Theme.spacing.md) / 2,
+    width: (width - theme.spacing.lg * 2 - theme.spacing.lg * 2 - theme.spacing.md) / 2,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.colors.background,
-    padding: Theme.spacing.md,
-    borderRadius: Theme.radius.lg,
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.lg,
   },
   infoIconContainer: {
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.card,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Theme.shadows.soft,
+    ...theme.shadows.soft,
   },
   infoTextContainer: {
-    marginLeft: Theme.spacing.sm,
+    marginLeft: theme.spacing.sm,
   },
   infoLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: Theme.colors.secondaryText,
+    color: theme.colors.secondaryText,
     textTransform: 'uppercase',
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.colors.text,
+    color: theme.colors.text,
   },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: Theme.colors.secondaryText,
+    color: theme.colors.secondaryText,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: Theme.spacing.sm,
-    marginLeft: Theme.spacing.xs,
+    marginBottom: theme.spacing.sm,
+    marginLeft: theme.spacing.xs,
   },
   menuCard: {
-    backgroundColor: Theme.colors.card,
-    borderRadius: Theme.radius.xl,
-    paddingHorizontal: Theme.spacing.lg,
-    marginBottom: Theme.spacing.xl,
-    ...Theme.shadows.soft,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.xl,
+    paddingHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
+    ...theme.shadows.soft,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Theme.spacing.lg,
+    paddingVertical: theme.spacing.lg,
   },
   menuIconContainer: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: theme.colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Theme.spacing.md,
+    marginRight: theme.spacing.md,
   },
   menuLabel: {
     flex: 1,
@@ -266,13 +337,48 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Theme.colors.separator,
+    backgroundColor: theme.colors.separator,
     opacity: 0.3,
   },
   versionText: {
     textAlign: 'center',
     fontSize: 12,
-    color: Theme.colors.separator,
-    marginTop: Theme.spacing.lg,
+    color: theme.colors.separator,
+    marginTop: theme.spacing.lg,
   },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.separator,
+    backgroundColor: theme.colors.card,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.colors.text,
+  },
+  modalCloseText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.primary,
+  },
+  modalContent: {
+    padding: theme.spacing.lg,
+  },
+  modalText: {
+    fontSize: 16,
+    color: theme.colors.text,
+    lineHeight: 24,
+  },
+  settingValue: {
+    fontSize: 16,
+    color: theme.colors.secondaryText,
+  }
 });

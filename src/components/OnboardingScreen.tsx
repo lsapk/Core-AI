@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
 import { useStore } from '../store/useStore';
-import { Theme } from '../utils/Theme';
+import { useAppTheme } from '../utils/Theme';
 import { MotiView, AnimatePresence } from 'moti';
 import { ChevronRight, ChevronLeft, Target, User, Ruler, Weight, Activity } from 'lucide-react-native';
 
@@ -12,6 +12,8 @@ const STEPS = [
 ];
 
 export default function OnboardingScreen() {
+  const theme = useAppTheme();
+  const styles = getStyles(theme);
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({
     goal: 'health',
@@ -111,7 +113,7 @@ export default function OnboardingScreen() {
       >
         <View style={styles.stepHeader}>
           <View style={styles.stepIcon}>
-            <CurrentStep.icon size={32} color={Theme.colors.primary} />
+            <CurrentStep.icon size={32} color={theme.colors.primary} />
           </View>
           <Text style={styles.stepTitle}>{CurrentStep.title}</Text>
         </View>
@@ -238,7 +240,7 @@ export default function OnboardingScreen() {
       <View style={styles.footer}>
         {step > 0 && (
           <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-            <ChevronLeft size={24} color={Theme.colors.secondaryText} />
+            <ChevronLeft size={24} color={theme.colors.secondaryText} />
             <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
         )}
@@ -251,14 +253,14 @@ export default function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: theme.colors.background,
   },
   header: {
     paddingTop: 60,
-    paddingHorizontal: Theme.spacing.xl,
+    paddingHorizontal: theme.spacing.xl,
     alignItems: 'center',
   },
   progressDots: {
@@ -269,14 +271,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Theme.colors.separator,
+    backgroundColor: theme.colors.separator,
   },
   dotActive: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: theme.colors.primary,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: Theme.spacing.xl,
+    padding: theme.spacing.xl,
     justifyContent: 'center',
   },
   stepContainer: {
@@ -298,7 +300,7 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     textAlign: 'center',
     letterSpacing: -0.5,
   },
@@ -306,29 +308,29 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   option: {
-    backgroundColor: Theme.colors.card,
-    padding: Theme.spacing.lg,
-    borderRadius: Theme.radius.lg,
+    backgroundColor: theme.colors.card,
+    padding: theme.spacing.lg,
+    borderRadius: theme.radius.lg,
     borderWidth: 2,
     borderColor: 'transparent',
-    ...Theme.shadows.soft,
+    ...theme.shadows.soft,
   },
   optionActive: {
-    borderColor: Theme.colors.primary,
+    borderColor: theme.colors.primary,
     backgroundColor: 'rgba(16, 185, 129, 0.05)',
   },
   optionLabel: {
     fontSize: 18,
     fontWeight: '700',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     marginBottom: 4,
   },
   optionLabelActive: {
-    color: Theme.colors.primary,
+    color: theme.colors.primary,
   },
   optionDesc: {
     fontSize: 14,
-    color: Theme.colors.secondaryText,
+    color: theme.colors.secondaryText,
   },
   formContainer: {
     gap: 20,
@@ -339,7 +341,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '700',
-    color: Theme.colors.secondaryText,
+    color: theme.colors.secondaryText,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -350,19 +352,19 @@ const styles = StyleSheet.create({
   genderBtn: {
     flex: 1,
     height: 50,
-    borderRadius: Theme.radius.md,
-    backgroundColor: Theme.colors.card,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.card,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Theme.shadows.soft,
+    ...theme.shadows.soft,
   },
   genderBtnActive: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: theme.colors.primary,
   },
   genderText: {
     fontSize: 16,
     fontWeight: '700',
-    color: Theme.colors.text,
+    color: theme.colors.text,
   },
   genderTextActive: {
     color: 'white',
@@ -372,16 +374,16 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 56,
-    backgroundColor: Theme.colors.card,
-    borderRadius: Theme.radius.md,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.md,
     paddingHorizontal: 16,
     fontSize: 18,
     fontWeight: '600',
-    color: Theme.colors.text,
-    ...Theme.shadows.soft,
+    color: theme.colors.text,
+    ...theme.shadows.soft,
   },
   footer: {
-    padding: Theme.spacing.xl,
+    padding: theme.spacing.xl,
     paddingBottom: 40,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -395,19 +397,19 @@ const styles = StyleSheet.create({
   backText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Theme.colors.secondaryText,
+    color: theme.colors.secondaryText,
   },
   nextBtn: {
     flex: 1,
     marginLeft: 20,
     height: 56,
-    backgroundColor: Theme.colors.primary,
-    borderRadius: Theme.radius.md,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.md,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    ...Theme.shadows.soft,
+    ...theme.shadows.soft,
   },
   nextText: {
     fontSize: 18,
