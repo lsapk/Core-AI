@@ -91,34 +91,98 @@ export const useStore = create<AppState>()(
         const { user } = get();
         if (!user) return;
 
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
 
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching profile:', error);
-        } else if (data) {
-          set({ profile: data });
+          if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching profile:', error);
+            // Fallback to default profile if table doesn't exist or other error
+            set({ 
+              profile: {
+                id: user.id,
+                email: user.email || '',
+                goal: 'health',
+                gender: 'other',
+                age: 0,
+                weight: 0,
+                height: 0,
+                activity_level: 'moderate',
+                daily_calories_goal: 2000,
+                protein_goal: 150,
+                carbs_goal: 200,
+                fat_goal: 65,
+                onboarding_completed: false
+              } 
+            });
+          } else if (data) {
+            set({ profile: data });
+          } else {
+            // Profile doesn't exist yet, set a default one so onboarding can start
+            set({ 
+              profile: {
+                id: user.id,
+                email: user.email || '',
+                goal: 'health',
+                gender: 'other',
+                age: 0,
+                weight: 0,
+                height: 0,
+                activity_level: 'moderate',
+                daily_calories_goal: 2000,
+                protein_goal: 150,
+                carbs_goal: 200,
+                fat_goal: 65,
+                onboarding_completed: false
+              } 
+            });
+          }
+        } catch (err) {
+          console.error('Unexpected error fetching profile:', err);
+          set({ 
+            profile: {
+              id: user.id,
+              email: user.email || '',
+              goal: 'health',
+              gender: 'other',
+              age: 0,
+              weight: 0,
+              height: 0,
+              activity_level: 'moderate',
+              daily_calories_goal: 2000,
+              protein_goal: 150,
+              carbs_goal: 200,
+              fat_goal: 65,
+              onboarding_completed: false
+            } 
+          });
         }
       },
 
       updateProfile: async (updates) => {
-        const { user } = get();
+        const { user, profile } = get();
         if (!user) return;
 
-        const { data, error } = await supabase
-          .from('profiles')
-          .upsert({ id: user.id, ...updates })
-          .select()
-          .single();
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .upsert({ id: user.id, ...updates })
+            .select()
+            .single();
 
-        if (error) {
-          console.error('Error updating profile:', error);
-          throw error;
-        } else {
-          set({ profile: data });
+          if (error) {
+            console.error('Error updating profile in Supabase:', error);
+            // Update local state anyway so the app doesn't block
+            set({ profile: { ...profile, ...updates } as UserProfile });
+          } else {
+            set({ profile: data });
+          }
+        } catch (err) {
+          console.error('Unexpected error updating profile:', err);
+          set({ profile: { ...profile, ...updates } as UserProfile });
         }
       },
 
