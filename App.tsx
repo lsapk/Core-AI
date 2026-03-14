@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import 'react-native-url-polyfill/auto';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Camera, List, Activity, User, MessageSquare } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
