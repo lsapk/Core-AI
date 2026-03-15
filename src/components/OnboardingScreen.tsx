@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
 import { useStore } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
-import { MotiView, AnimatePresence } from 'moti';
+import { View as MotiView, AnimatePresence } from 'moti';
 import { ChevronRight, ChevronLeft, Target, User, Ruler, Weight, Activity } from 'lucide-react-native';
 
 const STEPS = [

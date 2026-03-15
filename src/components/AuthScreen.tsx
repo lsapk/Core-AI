@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { supabase } from '../services/supabase';
 import { useAppTheme } from '../utils/Theme';
-import { MotiView } from 'moti';
+import { View as MotiView } from 'moti';
 import { Activity, Mail, Lock, ArrowRight } from 'lucide-react-native';
 
 export default function AuthScreen() {
