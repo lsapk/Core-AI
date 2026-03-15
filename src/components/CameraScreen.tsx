@@ -150,10 +150,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
 
   return (
     <View style={styles.container}>
-      <KeyboardAvoidingView 
-        style={styles.cameraWrapper}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <View style={styles.cameraWrapper}>
         {preview ? (
           <Image source={{ uri: preview }} style={styles.previewImage} />
         ) : (
@@ -193,7 +190,10 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
         </View>
 
         {/* Bottom Controls */}
-        <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 20 }]}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={[styles.bottomControls, { paddingBottom: insets.bottom + 20 }]}
+        >
           {preview ? (
             <View style={styles.previewControls}>
               <View style={styles.inputContainer}>
@@ -255,7 +255,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
               )}
             </>
           )}
-        </View>
+        </KeyboardAvoidingView>
 
         {/* Analysis Result Modal */}
         <Modal visible={!!analysisResult} transparent animationType="fade">
@@ -339,7 +339,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
             </MotiView>
           )}
         </AnimatePresence>
-      </KeyboardAvoidingView>
+      </View>
     </View>
   );
 }

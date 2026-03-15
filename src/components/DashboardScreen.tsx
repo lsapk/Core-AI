@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Dimensions, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Dimensions, TouchableOpacity, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { View as MotiView, AnimatePresence } from 'moti';
 import Svg, { Circle } from 'react-native-svg';
 import { useStore } from '../store/useStore';
@@ -60,17 +60,29 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
       return;
     }
 
-    const qty = parseFloat(manualMeal.servings) || 1;
+    const cals = parseInt(manualMeal.calories);
+    if (isNaN(cals)) {
+      Alert.alert("Erreur", "Les calories doivent être un nombre valide.");
+      return;
+    }
+
+    const qty = parseFloat(manualMeal.servings);
+    const validQty = isNaN(qty) ? 1 : qty;
+
+    const parseMacro = (val: string) => {
+      const parsed = parseFloat(val);
+      return isNaN(parsed) ? 0 : parsed;
+    };
 
     try {
       await addMeal({
         date: new Date().toISOString(),
         foodName: manualMeal.foodName,
-        calories: parseInt(manualMeal.calories) * qty,
-        protein: (parseFloat(manualMeal.protein) || 0) * qty,
-        carbs: (parseFloat(manualMeal.carbs) || 0) * qty,
-        fat: (parseFloat(manualMeal.fat) || 0) * qty,
-        servings: qty,
+        calories: cals * validQty,
+        protein: parseMacro(manualMeal.protein) * validQty,
+        carbs: parseMacro(manualMeal.carbs) * validQty,
+        fat: parseMacro(manualMeal.fat) * validQty,
+        servings: validQty,
       });
       setIsManualModalVisible(false);
       setManualMeal({ foodName: '', calories: '', protein: '', carbs: '', fat: '', servings: '1' });
@@ -299,66 +311,71 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
 
       {/* Manual Entry Modal */}
       <Modal visible={isManualModalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
           <MotiView from={{ translateY: 300 }} animate={{ translateY: 0 }} style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Ajout manuel</Text>
-              <TouchableOpacity onPress={() => setIsManualModalVisible(false)}>
-                <X size={24} color={theme.colors.text} />
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Ajout manuel</Text>
+                <TouchableOpacity onPress={() => setIsManualModalVisible(false)}>
+                  <X size={24} color={theme.colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <TextInput
+                style={styles.input}
+                placeholder="Nom du repas"
+                value={manualMeal.foodName}
+                onChangeText={(v) => setManualMeal({...manualMeal, foodName: v})}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Calories"
+                keyboardType="numeric"
+                value={manualMeal.calories}
+                onChangeText={(v) => setManualMeal({...manualMeal, calories: v})}
+              />
+              
+              <View style={styles.macrosInputRow}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Prot (g)"
+                  keyboardType="numeric"
+                  value={manualMeal.protein}
+                  onChangeText={(v) => setManualMeal({...manualMeal, protein: v})}
+                />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Gluc (g)"
+                  keyboardType="numeric"
+                  value={manualMeal.carbs}
+                  onChangeText={(v) => setManualMeal({...manualMeal, carbs: v})}
+                />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Lip (g)"
+                  keyboardType="numeric"
+                  value={manualMeal.fat}
+                  onChangeText={(v) => setManualMeal({...manualMeal, fat: v})}
+                />
+              </View>
+
+              <TextInput
+                style={styles.input}
+                placeholder="Quantité (ex: 1.5)"
+                keyboardType="numeric"
+                value={manualMeal.servings}
+                onChangeText={(v) => setManualMeal({...manualMeal, servings: v})}
+              />
+
+              <TouchableOpacity style={styles.submitBtn} onPress={handleManualSubmit}>
+                <Text style={styles.submitBtnText}>Ajouter le repas</Text>
               </TouchableOpacity>
-            </View>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Nom du repas"
-              value={manualMeal.foodName}
-              onChangeText={(v) => setManualMeal({...manualMeal, foodName: v})}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Calories"
-              keyboardType="numeric"
-              value={manualMeal.calories}
-              onChangeText={(v) => setManualMeal({...manualMeal, calories: v})}
-            />
-            
-            <View style={styles.macrosInputRow}>
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Prot (g)"
-                keyboardType="numeric"
-                value={manualMeal.protein}
-                onChangeText={(v) => setManualMeal({...manualMeal, protein: v})}
-              />
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Gluc (g)"
-                keyboardType="numeric"
-                value={manualMeal.carbs}
-                onChangeText={(v) => setManualMeal({...manualMeal, carbs: v})}
-              />
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Lip (g)"
-                keyboardType="numeric"
-                value={manualMeal.fat}
-                onChangeText={(v) => setManualMeal({...manualMeal, fat: v})}
-              />
-            </View>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Quantité (ex: 1.5)"
-              keyboardType="numeric"
-              value={manualMeal.servings}
-              onChangeText={(v) => setManualMeal({...manualMeal, servings: v})}
-            />
-
-            <TouchableOpacity style={styles.submitBtn} onPress={handleManualSubmit}>
-              <Text style={styles.submitBtnText}>Ajouter le repas</Text>
-            </TouchableOpacity>
+            </ScrollView>
           </MotiView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import 'react-native-url-polyfill/auto';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions, ActivityIndicator, Image, BackHandler } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Camera, List, Activity, User, MessageSquare } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
@@ -36,6 +36,23 @@ function AppContent() {
 
     return () => subscription.unsubscribe();
   }, [setUser]);
+
+  useEffect(() => {
+    const backAction = () => {
+      if (activeTab !== 'home') {
+        setActiveTab('home');
+        return true; // Prevent default behavior (exit app)
+      }
+      return false; // Let default behavior happen (exit app)
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    return () => backHandler.remove();
+  }, [activeTab]);
 
   if (!user) {
     return <AuthScreen />;

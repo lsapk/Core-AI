@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 import { supabase } from '../services/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { decode } from 'base64-arraybuffer';
@@ -55,11 +56,12 @@ interface AppState {
   fetchProfile: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   fetchMeals: () => Promise<void>;
+  fetchWater: () => Promise<void>;
   addMeal: (meal: Omit<MealRecord, 'id'>) => Promise<void>;
   removeMeal: (id: string) => Promise<void>;
   uploadImage: (base64: string) => Promise<string | null>;
-  addWater: (amount: number) => void;
-  resetWater: () => void;
+  addWater: (amount: number) => Promise<void>;
+  resetWater: () => Promise<void>;
   addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
   setThemePreference: (theme: ThemePreference) => void;
   signOut: () => Promise<void>;
@@ -82,6 +84,7 @@ export const useStore = create<AppState>()(
         if (user) {
           get().fetchProfile();
           get().fetchMeals();
+          get().fetchWater();
         } else {
           set({ profile: null, meals: [], messages: [], water: 0 });
         }
@@ -100,6 +103,7 @@ export const useStore = create<AppState>()(
 
           if (error && error.code !== 'PGRST116') {
             console.error('Error fetching profile:', error);
+            Alert.alert("Erreur de connexion", "Impossible de récupérer votre profil. Vous êtes en mode hors-ligne ou une erreur s'est produite.");
             // Fallback to default profile if table doesn't exist or other error
             set({ 
               profile: {
@@ -192,10 +196,14 @@ export const useStore = create<AppState>()(
 
         set({ isLoading: true });
         try {
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
           const { data, error } = await supabase
             .from('meals')
             .select('*')
             .eq('user_id', user.id)
+            .gte('date', thirtyDaysAgo.toISOString())
             .order('date', { ascending: false });
           
           if (error) {
@@ -306,12 +314,72 @@ export const useStore = create<AppState>()(
         }
       },
 
-      addWater: (amount) => {
-        set((state) => ({ water: state.water + amount }));
+      fetchWater: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          const today = new Date().toISOString().split('T')[0];
+          const { data, error } = await supabase
+            .from('water_logs')
+            .select('amount')
+            .eq('user_id', user.id)
+            .eq('date', today)
+            .single();
+
+          if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching water:', error);
+          } else if (data) {
+            set({ water: data.amount });
+          } else {
+            set({ water: 0 });
+          }
+        } catch (err) {
+          console.error('Unexpected error fetching water:', err);
+        }
       },
 
-      resetWater: () => {
-        set({ water: 0 });
+      addWater: async (amount) => {
+        const { user, water } = get();
+        const newAmount = water + amount;
+        set({ water: newAmount }); // Optimistic update
+
+        if (user) {
+          try {
+            const today = new Date().toISOString().split('T')[0];
+            await supabase
+              .from('water_logs')
+              .upsert({ 
+                user_id: user.id, 
+                date: today, 
+                amount: newAmount,
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'user_id,date' });
+          } catch (err) {
+            console.error('Error saving water:', err);
+          }
+        }
+      },
+
+      resetWater: async () => {
+        const { user } = get();
+        set({ water: 0 }); // Optimistic update
+
+        if (user) {
+          try {
+            const today = new Date().toISOString().split('T')[0];
+            await supabase
+              .from('water_logs')
+              .upsert({ 
+                user_id: user.id, 
+                date: today, 
+                amount: 0,
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'user_id,date' });
+          } catch (err) {
+            console.error('Error resetting water:', err);
+          }
+        }
       },
 
       addMessage: (message) => {
