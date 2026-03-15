@@ -16,6 +16,7 @@ export interface MealRecord {
   fat: number;
   servings: number;
   imageUrl?: string;
+  mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
 }
 
 export interface ChatMessage {
@@ -219,6 +220,7 @@ export const useStore = create<AppState>()(
               fat: item.fat,
               servings: item.servings || 1,
               imageUrl: item.image_url,
+              mealType: item.meal_type,
             }));
             set({ meals: formattedMeals });
           }
@@ -271,6 +273,7 @@ export const useStore = create<AppState>()(
                 fat: meal.fat,
                 servings: meal.servings || 1,
                 image_url: meal.imageUrl,
+                meal_type: meal.mealType,
               }
             ])
             .select()
@@ -289,6 +292,7 @@ export const useStore = create<AppState>()(
               fat: data.fat,
               servings: data.servings || 1,
               imageUrl: data.image_url,
+              mealType: data.meal_type,
             };
             set((state) => ({ meals: [newMeal, ...state.meals] }));
           }

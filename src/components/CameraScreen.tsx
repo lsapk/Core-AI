@@ -5,8 +5,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { BlurView } from 'expo-blur';
 import { View as MotiView, AnimatePresence } from 'moti';
-import { X, Zap, ScanBarcode, Camera as CameraIcon, Loader2, Check, Type } from 'lucide-react-native';
-import { analyzeMealImage } from '../services/gemini';
+import { X, Zap, ScanBarcode, Camera as CameraIcon, Loader2, Check, Type, Plus } from 'lucide-react-native';
+import { analyzeMealImage, analyzeMealText } from '../services/gemini';
 import { fetchProductByBarcode } from '../services/openFoodFacts';
 import { useStore } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
@@ -24,8 +24,10 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
   const [extraDetails, setExtraDetails] = useState('');
   const [isScanningBarcode, setIsScanningBarcode] = useState(false);
   const [flash, setFlash] = useState<'off' | 'on'>('off');
-  const [analysisResult, setAnalysisResult] = useState<any | null>(null);
+  const [analysisResults, setAnalysisResults] = useState<any[]>([]);
   const [servings, setServings] = useState('1');
+  const [manualAddText, setManualAddText] = useState('');
+  const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('lunch');
   const cameraRef = useRef<CameraView>(null);
   const addMeal = useStore(state => state.addMeal);
   const profile = useStore(state => state.profile);
@@ -64,7 +66,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
       setIsScanningBarcode(false);
       const product = await fetchProductByBarcode(result.data);
       setServings('1');
-      setAnalysisResult(product);
+      setAnalysisResults([{...product, servings: 1}]);
     } catch (error: any) {
       console.error("Barcode scan error:", error);
       Alert.alert("Erreur", `Produit introuvable ou erreur réseau. (${error.message || 'Erreur inconnue'})`);
@@ -101,6 +103,27 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
     }
   };
 
+  const updateServing = (index: number, qty: string) => {
+    setAnalysisResults(prev => prev.map((item, i) =>
+      i === index ? { ...item, servings: parseFloat(qty.replace(',', '.')) || 1 } : item
+    ));
+  };
+
+  const addManualItem = async () => {
+    if (!manualAddText.trim() || isProcessing) return;
+    try {
+      setIsProcessing(true);
+      const result = await analyzeMealText(manualAddText);
+      setAnalysisResults(prev => [...prev, { ...result, servings: 1 }]);
+      setManualAddText('');
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Erreur", "Impossible d'ajouter cet aliment.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const analyzeMeal = async () => {
     if (!base64Image) return;
     try {
@@ -111,10 +134,11 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
       const publicUrl = await useStore.getState().uploadImage(base64Image);
       
       setServings('1');
-      setAnalysisResult({
+      setAnalysisResults([{
         ...result,
-        imageUrl: publicUrl || undefined
-      });
+        imageUrl: publicUrl || undefined,
+        servings: 1
+      }]);
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Error analyzing image. Please try again.");
@@ -127,20 +151,24 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
   };
 
   const confirmMeal = async () => {
-    if (!analysisResult) return;
-    const qty = parseFloat(servings.replace(',', '.')) || 1;
+    if (analysisResults.length === 0) return;
     try {
       setIsProcessing(true);
-      await addMeal({
-        date: new Date().toISOString(),
-        foodName: analysisResult.foodName,
-        calories: analysisResult.calories * qty,
-        protein: analysisResult.protein * qty,
-        carbs: analysisResult.carbs * qty,
-        fat: analysisResult.fat * qty,
-        servings: qty,
-        imageUrl: analysisResult.imageUrl
-      });
+      const date = new Date().toISOString();
+      for (const item of analysisResults) {
+        const qty = item.servings || 1;
+        await addMeal({
+          date,
+          foodName: item.foodName,
+          calories: item.calories * qty,
+          protein: item.protein * qty,
+          carbs: item.carbs * qty,
+          fat: item.fat * qty,
+          servings: qty,
+          imageUrl: item.imageUrl,
+          mealType
+        });
+      }
       onComplete();
     } catch (error) {
       Alert.alert("Error", "Failed to save meal.");
@@ -148,6 +176,11 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
       setIsProcessing(false);
     }
   };
+
+  const totalCalories = analysisResults.reduce((sum, item) => sum + (item.calories * (item.servings || 1)), 0);
+  const totalProtein = analysisResults.reduce((sum, item) => sum + (item.protein * (item.servings || 1)), 0);
+  const totalCarbs = analysisResults.reduce((sum, item) => sum + (item.carbs * (item.servings || 1)), 0);
+  const totalFat = analysisResults.reduce((sum, item) => sum + (item.fat * (item.servings || 1)), 0);
 
   return (
     <View style={styles.container}>
@@ -256,8 +289,11 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
         </KeyboardAvoidingView>
 
         {/* Analysis Result Modal */}
-        <Modal visible={!!analysisResult} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
+        <Modal visible={analysisResults.length > 0} transparent animationType="slide">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.modalOverlay}
+          >
             <MotiView 
               from={{ opacity: 0, translateY: 100 } as any}
               animate={{ opacity: 1, translateY: 0 } as any}
@@ -266,42 +302,77 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
               <View style={styles.modalHandle} />
               <View style={styles.resultHeader}>
                 <Text style={styles.resultTitle}>Vérification</Text>
-                <TouchableOpacity onPress={() => setAnalysisResult(null)} style={styles.modalCloseBtn}>
+                <TouchableOpacity onPress={() => setAnalysisResults([])} style={styles.modalCloseBtn}>
                   <X size={20} color={theme.colors.text} />
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.foodName}>{analysisResult?.foodName}</Text>
-              
-              <View style={styles.resultStats}>
-                <View style={styles.resultStat}>
-                  <Text style={styles.statValue}>{Math.round(analysisResult?.calories * (parseFloat(servings.replace(',', '.')) || 1))}</Text>
-                  <Text style={styles.statLabel}>kcal</Text>
-                </View>
-                <View style={styles.resultStat}>
-                  <Text style={styles.statValue}>{Math.round(analysisResult?.protein * (parseFloat(servings.replace(',', '.')) || 1))}g</Text>
-                  <Text style={styles.statLabel}>Prot</Text>
-                </View>
-                <View style={styles.resultStat}>
-                  <Text style={styles.statValue}>{Math.round(analysisResult?.carbs * (parseFloat(servings.replace(',', '.')) || 1))}g</Text>
-                  <Text style={styles.statLabel}>Gluc</Text>
-                </View>
-                <View style={styles.resultStat}>
-                  <Text style={styles.statValue}>{Math.round(analysisResult?.fat * (parseFloat(servings.replace(',', '.')) || 1))}g</Text>
-                  <Text style={styles.statLabel}>Lip</Text>
-                </View>
+              <View style={styles.manualAddContainer}>
+                <TextInput
+                  style={styles.manualAddInput}
+                  placeholder="Ex: rajoute 1 pomme"
+                  placeholderTextColor={theme.colors.secondaryText}
+                  value={manualAddText}
+                  onChangeText={setManualAddText}
+                  onSubmitEditing={addManualItem}
+                />
+                <TouchableOpacity
+                  style={styles.manualAddBtn}
+                  onPress={addManualItem}
+                  disabled={isProcessing || !manualAddText.trim()}
+                >
+                  <Plus size={20} color="white" />
+                </TouchableOpacity>
               </View>
 
-              <View style={styles.quantityContainer}>
-                <Text style={styles.quantityLabel}>Quantité / Portions</Text>
-                <View style={styles.quantityInputWrapper}>
-                  <TextInput
-                    style={styles.quantityInput}
-                    keyboardType="numeric"
-                    value={servings}
-                    onChangeText={setServings}
-                  />
-                  <Text style={styles.quantityUnit}>portion(s)</Text>
+              <View style={styles.mealTypeContainer}>
+                {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map(type => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[styles.mealTypeBtn, mealType === type && styles.mealTypeBtnActive]}
+                    onPress={() => setMealType(type)}
+                  >
+                    <Text style={[styles.mealTypeText, mealType === type && styles.mealTypeTextActive]}>
+                      {type === 'breakfast' ? 'Petit déj' : type === 'lunch' ? 'Déjeuner' : type === 'dinner' ? 'Dîner' : 'Collation'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.tableContainer}>
+                <View style={styles.tableHeader}>
+                  <Text style={[styles.tableCell, styles.tableHeaderCell, { flex: 2 }]}>Aliment</Text>
+                  <Text style={[styles.tableCell, styles.tableHeaderCell]}>Kcal</Text>
+                  <Text style={[styles.tableCell, styles.tableHeaderCell]}>Prot</Text>
+                  <Text style={[styles.tableCell, styles.tableHeaderCell]}>Gluc</Text>
+                  <Text style={[styles.tableCell, styles.tableHeaderCell]}>Lip</Text>
+                </View>
+                {analysisResults.map((item, index) => (
+                  <View key={index} style={styles.tableRow}>
+                    <View style={[{ flex: 2, paddingRight: 4 }]}>
+                      <Text style={[styles.tableCell, { textAlign: 'left' }]} numberOfLines={1}>{item.foodName}</Text>
+                      <View style={styles.inlineQtyContainer}>
+                        <Text style={styles.inlineQtyLabel}>Qté:</Text>
+                        <TextInput
+                          style={styles.inlineQtyInput}
+                          keyboardType="numeric"
+                          value={item.servings?.toString() || '1'}
+                          onChangeText={(val) => updateServing(index, val)}
+                        />
+                      </View>
+                    </View>
+                    <Text style={styles.tableCell}>{Math.round(item.calories * (item.servings || 1))}</Text>
+                    <Text style={styles.tableCell}>{Math.round(item.protein * (item.servings || 1))}</Text>
+                    <Text style={styles.tableCell}>{Math.round(item.carbs * (item.servings || 1))}</Text>
+                    <Text style={styles.tableCell}>{Math.round(item.fat * (item.servings || 1))}</Text>
+                  </View>
+                ))}
+                <View style={[styles.tableRow, styles.tableTotalRow]}>
+                  <Text style={[styles.tableCell, styles.tableTotalCell, { flex: 2 }]}>TOTAL</Text>
+                  <Text style={[styles.tableCell, styles.tableTotalCell]}>{Math.round(totalCalories)}</Text>
+                  <Text style={[styles.tableCell, styles.tableTotalCell]}>{Math.round(totalProtein)}g</Text>
+                  <Text style={[styles.tableCell, styles.tableTotalCell]}>{Math.round(totalCarbs)}g</Text>
+                  <Text style={[styles.tableCell, styles.tableTotalCell]}>{Math.round(totalFat)}g</Text>
                 </View>
               </View>
 
@@ -309,7 +380,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
                 <Text style={styles.confirmResultBtnText}>Confirmer</Text>
               </TouchableOpacity>
             </MotiView>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
 
         {/* Processing Overlay */}
@@ -667,5 +738,117 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     color: 'white',
     fontSize: 17,
     fontWeight: '700',
+  },
+  tableContainer: {
+    marginBottom: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.background,
+    overflow: 'hidden',
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.separator,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  tableHeaderCell: {
+    fontWeight: '700',
+    color: theme.colors.secondaryText,
+    fontSize: 12,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.separator,
+  },
+  tableTotalRow: {
+    backgroundColor: theme.colors.card,
+    borderBottomWidth: 0,
+    marginTop: 4,
+  },
+  tableCell: {
+    flex: 1,
+    fontSize: 14,
+    color: theme.colors.text,
+    textAlign: 'center',
+  },
+  tableTotalCell: {
+    fontWeight: '800',
+  },
+  inlineQtyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  inlineQtyLabel: {
+    fontSize: 10,
+    color: theme.colors.secondaryText,
+    marginRight: 4,
+  },
+  inlineQtyInput: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    fontSize: 12,
+    color: theme.colors.text,
+    minWidth: 30,
+    textAlign: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.separator,
+  },
+  manualAddContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  manualAddInput: {
+    flex: 1,
+    height: 44,
+    backgroundColor: theme.colors.background,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    color: theme.colors.text,
+    fontSize: 15,
+  },
+  manualAddBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  mealTypeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 8,
+  },
+  mealTypeBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: theme.colors.background,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.separator,
+  },
+  mealTypeBtnActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  mealTypeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.secondaryText,
+  },
+  mealTypeTextActive: {
+    color: 'white',
   },
 });

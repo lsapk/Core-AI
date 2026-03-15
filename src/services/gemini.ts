@@ -42,13 +42,44 @@ const addWaterTool: FunctionDeclaration = {
   },
 };
 
+export async function analyzeMealText(text: string): Promise<NutritionInfo> {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: [{ role: 'user', parts: [{ text: `Analyze this food description and estimate the macronutrients and calories for the given quantity: "${text}". Provide a structured JSON response.` }] }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            foodName: { type: Type.STRING, description: "Name of the food" },
+            calories: { type: Type.NUMBER, description: "Estimated total calories" },
+            protein: { type: Type.NUMBER, description: "Estimated protein in grams" },
+            carbs: { type: Type.NUMBER, description: "Estimated carbohydrates in grams" },
+            fat: { type: Type.NUMBER, description: "Estimated fat in grams" },
+          },
+          required: ["foodName", "calories", "protein", "carbs", "fat"]
+        }
+      }
+    });
+
+    if (response.text) {
+      return JSON.parse(response.text) as NutritionInfo;
+    }
+    throw new Error("No response from Gemini");
+  } catch (error) {
+    console.error("Gemini API Error:", error);
+    throw error;
+  }
+}
+
 export async function analyzeMealImage(base64Image: string, mimeType: string, goal?: string, extraDetails?: string): Promise<NutritionInfo> {
   try {
     const goalPrompt = goal ? ` The user's goal is ${goal.replace('_', ' ')}. Provide advice if this meal fits their goal.` : '';
     const detailsPrompt = extraDetails ? ` Additional details from user: "${extraDetails}". Please take this into account when estimating.` : '';
     
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-1.5-flash',
       contents: {
         parts: [
           {
@@ -133,7 +164,7 @@ Tu DOIS utiliser l'outil 'add_meal' pour enregistrer CHAQUE repas analysé. Fais
     contents.push({ role: 'user', parts: [{ text: message }] });
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: contents,
       config: {
         systemInstruction: systemInstruction,

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch, Dimensions, Modal } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View as MotiView } from 'moti';
 import { useStore, ThemePreference } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
@@ -8,6 +9,7 @@ import { User, Settings, Bell, Shield, LogOut, ChevronRight, Trash2, Target, Rul
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const theme = useAppTheme();
   const styles = getStyles(theme);
   const { profile, signOut, updateProfile, themePreference, setThemePreference } = useStore();
@@ -148,7 +150,7 @@ export default function ProfileScreen() {
 
       {/* Privacy Policy Modal */}
       <Modal visible={showPrivacy} animationType="slide" presentationStyle="pageSheet">
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Privacy Policy</Text>
             <TouchableOpacity onPress={() => setShowPrivacy(false)}>
@@ -169,7 +171,7 @@ export default function ProfileScreen() {
 
       {/* App Settings Modal */}
       <Modal visible={showSettings} animationType="slide" presentationStyle="pageSheet">
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>App Settings</Text>
             <TouchableOpacity onPress={() => setShowSettings(false)}>

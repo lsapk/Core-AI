@@ -192,7 +192,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
             key={macro.label}
             from={{ opacity: 0, translateY: 20 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ delay: 100 + (index * 100) }}
+            transition={{ type: 'spring', delay: 50 + (index * 50) }}
             style={styles.macroCard}
           >
             <View style={[styles.macroIcon, { backgroundColor: `${macro.color}15` }]}>
@@ -300,7 +300,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
             key={meal.id} 
             from={{ opacity: 0, translateX: -20 }}
             animate={{ opacity: 1, translateX: 0 }}
-            transition={{ delay: 300 + (index * 100) }}
+            transition={{ type: 'spring', delay: 150 + (index * 50) }}
             style={styles.mealCard}
           >
             <View style={styles.mealImageContainer}>
@@ -319,7 +319,10 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
                   <Text style={styles.servingsBadge}>x{meal.servings}</Text>
                 )}
               </View>
-              <Text style={styles.mealCals}>{meal.calories} kcal</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                <Text style={styles.mealTypeLabel}>{meal.mealType === 'breakfast' ? 'Petit déj' : meal.mealType === 'lunch' ? 'Déjeuner' : meal.mealType === 'dinner' ? 'Dîner' : meal.mealType === 'snack' ? 'Collation' : 'Repas'}</Text>
+                <Text style={styles.mealCals}>{meal.calories} kcal</Text>
+              </View>
             </View>
             <ChevronRight size={20} color={theme.colors.separator} />
           </MotiView>
@@ -557,6 +560,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   mealName: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
   servingsBadge: { fontSize: 12, fontWeight: '800', color: theme.colors.primary, backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 8 },
   mealCals: { fontSize: 14, fontWeight: '600', color: theme.colors.primary },
+  mealTypeLabel: { fontSize: 13, fontWeight: '500', color: theme.colors.secondaryText },
   emptyCard: { padding: 40, alignItems: 'center', opacity: 0.5 },
   emptyText: { marginTop: 10, color: theme.colors.secondaryText, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-end' },
