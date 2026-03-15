@@ -93,10 +93,9 @@ function AppContent() {
             animate={{ opacity: 1, translateY: 0 } as any}
             style={styles.headerLogo}
           >
-            <Image 
-              source={require('./assets/logo.png')} 
-              style={styles.logoImage} 
-            />
+            <View style={styles.logoIcon}>
+              <Activity size={20} color="white" />
+            </View>
             <Text style={styles.headerTitle}>Core AI</Text>
           </MotiView>
         </View>

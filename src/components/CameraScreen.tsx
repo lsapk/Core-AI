@@ -65,8 +65,9 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
       const product = await fetchProductByBarcode(result.data);
       setServings('1');
       setAnalysisResult(product);
-    } catch (error) {
-      Alert.alert("Error", "Product not found or error fetching data.");
+    } catch (error: any) {
+      console.error("Barcode scan error:", error);
+      Alert.alert("Erreur", `Produit introuvable ou erreur réseau. (${error.message || 'Erreur inconnue'})`);
     } finally {
       setIsProcessing(false);
     }
@@ -159,9 +160,6 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
             ref={cameraRef} 
             facing={"back" as any}
             enableTorch={flash === 'on'}
-            barcodeScannerSettings={isScanningBarcode ? {
-              barcodeTypes: ["qr", "ean13", "ean8", "upc_e", "upc_a"],
-            } : undefined}
             onBarcodeScanned={isScanningBarcode ? onBarcodeScanned : undefined}
           />
         )}

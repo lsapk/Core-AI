@@ -47,13 +47,10 @@ export default function AuthScreen() {
           animate={{ opacity: 1, scale: 1 } as any}
           style={styles.logoContainer}
         >
-          <Image 
-            source={require('../../assets/logo.png')} 
-            style={styles.logoImage} 
-          />
-          <Text style={styles.logoText}>Core AI</Text>
-          <Text style={styles.logoSub}>Your AI Nutrition Partner</Text>
+          <Activity size={40} color="white" />
         </MotiView>
+        <Text style={styles.logoText}>Core AI</Text>
+        <Text style={styles.logoSub}>Your AI Nutrition Partner</Text>
 
         <MotiView 
           from={{ opacity: 0, translateY: 20 } as any}
@@ -140,12 +137,6 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...theme.shadows.medium,
-    marginBottom: 16,
-  },
-  logoImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
     marginBottom: 16,
   },
   logoText: {
