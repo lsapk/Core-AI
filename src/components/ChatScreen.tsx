@@ -7,12 +7,13 @@ import { useStore, ChatMessage } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
 import { Send, Bot } from 'lucide-react-native';
 import { chatWithAI } from '../services/gemini';
+import Markdown from 'react-native-markdown-display';
 
 export default function ChatScreen() {
   const theme = useAppTheme();
   const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
-  const { messages, addMessage, addMeal, addWater } = useStore();
+  const { messages, addMessage, addMeal, addWater, meals, profile } = useStore();
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const flashListRef = useRef<any>(null);
@@ -25,9 +26,29 @@ export default function ChatScreen() {
     addMessage({ role: 'user', text: userMessage });
     setIsTyping(true);
 
+    // 1. Calcul du contexte journalier strict
+    const todayISO = new Date().toISOString().split('T')[0];
+    const todayDateStr = new Date().toLocaleDateString('fr-FR');
+    const todayMeals = meals.filter(m => m.date.startsWith(todayISO));
+    
+    const totalCals = todayMeals.reduce((acc, m) => acc + m.calories, 0);
+    const totalProtein = todayMeals.reduce((acc, m) => acc + m.protein, 0);
+    const totalCarbs = todayMeals.reduce((acc, m) => acc + m.carbs, 0);
+    const totalFat = todayMeals.reduce((acc, m) => acc + m.fat, 0);
+
+    const dailyContext = `Calories: ${totalCals}/${profile?.daily_calories_goal || 2000} kcal, Protéines: ${totalProtein}/${profile?.protein_goal || 150}g, Glucides: ${totalCarbs}/${profile?.carbs_goal || 200}g, Lipides: ${totalFat}/${profile?.fat_goal || 65}g`;
+
+    // 2. Préparation de l'historique (les 6 derniers messages pour la cohérence sans exploser les tokens)
+    const chatHistory = messages.slice(-6).map(m => ({
+      role: m.role,
+      text: m.text
+    }));
+
     try {
-      const response = await chatWithAI(userMessage);
+      // 3. Appel avec le cerveau "reconnecté" à la base de données
+      const response = await chatWithAI(userMessage, chatHistory, dailyContext, todayDateStr);
       
+      // 4. CORRECTION DU BUG: On gère l'enregistrement en base ET l'affichage textuel indépendamment
       if (response.functionCalls) {
         for (const call of response.functionCalls) {
           if (call.name === 'add_meal') {
@@ -41,19 +62,24 @@ export default function ChatScreen() {
               fat: args.fat || 0,
               servings: args.servings || 1,
             });
-            addMessage({ role: 'model', text: `J'ai ajouté ${args.foodName} (${args.calories} kcal) à ton journal ! 🥗` });
           } else if (call.name === 'add_water') {
             const args = call.args as any;
             addWater(args.amountMl);
-            addMessage({ role: 'model', text: `C'est noté ! +${args.amountMl}ml d'eau. 💧` });
           }
         }
-      } else {
-        addMessage({ role: 'model', text: response.text || "C'est fait ! 👍" });
+      } 
+      
+      // On affiche TOUJOURS le texte de l'IA (le fameux tableau Markdown) s'il existe
+      if (response.text) {
+        addMessage({ role: 'model', text: response.text });
+      } else if (!response.text && response.functionCalls) {
+        // Fallback de sécurité au cas où l'IA n'a retourné QUE le tool call
+        addMessage({ role: 'model', text: "Données enregistrées dans ton journal." });
       }
+
     } catch (error) {
       console.error(error);
-      addMessage({ role: 'model', text: "Désolé, j'ai eu un petit problème technique. Peux-tu répéter ?" });
+      addMessage({ role: 'model', text: "Erreur d'analyse. Merci de réessayer." });
     } finally {
       setIsTyping(false);
     }
@@ -91,12 +117,18 @@ export default function ChatScreen() {
                 styles.messageBubble,
                 item.role === 'user' ? styles.userBubble : styles.botBubble
               ]}>
-                <Text style={[
-                  styles.messageText,
-                  item.role === 'user' ? styles.userText : styles.botText
-                ]}>
-                  {item.text}
-                </Text>
+                {item.role === 'user' ? (
+                  <Text style={[
+                    styles.messageText,
+                    styles.userText
+                  ]}>
+                    {item.text}
+                  </Text>
+                ) : (
+                  <Markdown style={markdownStyles(theme)}>
+                    {item.text}
+                  </Markdown>
+                )}
               </View>
               <Text style={styles.timestamp}>
                 {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -140,6 +172,50 @@ export default function ChatScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+const markdownStyles = (theme: ReturnType<typeof useAppTheme>) => ({
+  body: {
+    color: theme.colors.text,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  table: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  tr: {
+    borderBottomWidth: 1,
+    borderColor: theme.colors.border,
+    flexDirection: 'row',
+  },
+  th: {
+    padding: 8,
+    fontWeight: 'bold',
+    backgroundColor: theme.colors.background,
+    color: theme.colors.text,
+    flex: 1,
+  },
+  td: {
+    padding: 8,
+    color: theme.colors.text,
+    flex: 1,
+  },
+  strong: {
+    fontWeight: 'bold',
+    color: theme.colors.text,
+  },
+  em: {
+    fontStyle: 'italic',
+    color: theme.colors.text,
+  },
+  p: {
+    marginTop: 4,
+    marginBottom: 4,
+  }
+});
 
 const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
