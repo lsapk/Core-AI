@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard } from 'react-native';
 import { View as MotiView } from 'moti';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import { useStore, ChatMessage } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
 import { Send, Bot } from 'lucide-react-native';
@@ -16,7 +17,28 @@ export default function ChatScreen() {
   const { messages, addMessage, addMeal, addWater, meals, profile } = useStore();
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const flashListRef = useRef<any>(null);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setKeyboardVisible(true);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      keyboardDidHideListener.remove();
+      keyboardDidShowListener.remove();
+    };
+  }, []);
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
@@ -152,10 +174,11 @@ export default function ChatScreen() {
         </View>
       )}
 
-      <View style={[styles.inputContainer, { paddingBottom: insets.bottom + 60 + theme.spacing.md }]}>
+      <BlurView intensity={theme.isDark ? 80 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.inputContainer, { paddingBottom: isKeyboardVisible ? theme.spacing.md : insets.bottom + 60 + theme.spacing.md }]}>
         <TextInput
           style={styles.input}
           placeholder="Dis-moi tout..."
+          placeholderTextColor={theme.colors.secondaryText}
           value={inputText}
           onChangeText={setInputText}
           multiline
@@ -165,10 +188,11 @@ export default function ChatScreen() {
           style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]} 
           onPress={handleSend}
           disabled={!inputText.trim() || isTyping}
+          activeOpacity={0.7}
         >
-          <Send size={20} color="white" />
+          <Send size={18} color="white" style={{ marginLeft: -2 }} />
         </TouchableOpacity>
-      </View>
+      </BlurView>
     </KeyboardAvoidingView>
   );
 }
@@ -224,7 +248,8 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   userWrapper: { alignSelf: 'flex-end' },
   botWrapper: { alignSelf: 'flex-start' },
   messageBubble: {
-    padding: theme.spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderRadius: 20,
     ...theme.shadows.soft,
   },
@@ -240,37 +265,42 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   userText: { color: 'white', fontWeight: '500' },
   botText: { color: theme.colors.text },
   timestamp: {
-    fontSize: 10,
+    fontSize: 11,
     color: theme.colors.secondaryText,
-    marginTop: 4,
-    marginHorizontal: 4,
+    marginTop: 6,
+    marginHorizontal: 8,
+    fontWeight: '500',
   },
   inputContainer: {
     flexDirection: 'row',
     padding: theme.spacing.md,
-    backgroundColor: theme.colors.card,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.background,
+    alignItems: 'flex-end',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.separator,
   },
   input: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.card,
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingTop: 12,
+    paddingBottom: 12,
     fontSize: 16,
-    maxHeight: 100,
-    marginRight: 10,
+    maxHeight: 120,
+    minHeight: 40,
+    marginRight: 12,
     color: theme.colors.text,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.separator,
   },
   sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 2,
   },
   sendBtnDisabled: { opacity: 0.5 },
   emptyContainer: {
@@ -281,29 +311,30 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: theme.colors.text,
     textAlign: 'center',
     marginTop: 20,
+    letterSpacing: -0.5,
   },
   emptySub: {
-    fontSize: 14,
+    fontSize: 15,
     color: theme.colors.secondaryText,
     textAlign: 'center',
     marginTop: 10,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   typingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: 10,
+    paddingBottom: 12,
   },
   typingText: {
-    fontSize: 12,
+    fontSize: 13,
     color: theme.colors.secondaryText,
     marginLeft: 8,
-    fontStyle: 'italic',
+    fontWeight: '500',
   },
 });

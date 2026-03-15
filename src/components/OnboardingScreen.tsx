@@ -291,7 +291,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   stepIcon: {
     width: 64,
     height: 64,
-    borderRadius: 20,
+    borderRadius: 24,
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -310,13 +310,14 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   option: {
     backgroundColor: theme.colors.card,
     padding: theme.spacing.lg,
-    borderRadius: theme.radius.lg,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.separator,
     ...theme.shadows.soft,
   },
   optionActive: {
     borderColor: theme.colors.primary,
+    borderWidth: 2,
     backgroundColor: 'rgba(16, 185, 129, 0.05)',
   },
   optionLabel: {
@@ -329,21 +330,20 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     color: theme.colors.primary,
   },
   optionDesc: {
-    fontSize: 14,
+    fontSize: 15,
     color: theme.colors.secondaryText,
   },
   formContainer: {
-    gap: 20,
+    gap: 24,
   },
   inputGroup: {
     gap: 8,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     color: theme.colors.secondaryText,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    marginLeft: 4,
   },
   genderRow: {
     flexDirection: 'row',
@@ -351,19 +351,22 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   },
   genderBtn: {
     flex: 1,
-    height: 50,
-    borderRadius: theme.radius.md,
+    height: 56,
+    borderRadius: 16,
     backgroundColor: theme.colors.card,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.separator,
     ...theme.shadows.soft,
   },
   genderBtnActive: {
     backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   genderText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
     color: theme.colors.text,
   },
   genderTextActive: {
@@ -375,11 +378,13 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   input: {
     height: 56,
     backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.md,
+    borderRadius: 16,
     paddingHorizontal: 16,
     fontSize: 18,
     fontWeight: '600',
     color: theme.colors.text,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.separator,
     ...theme.shadows.soft,
   },
   footer: {
@@ -404,7 +409,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     marginLeft: 20,
     height: 56,
     backgroundColor: theme.colors.primary,
-    borderRadius: theme.radius.md,
+    borderRadius: 20,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',

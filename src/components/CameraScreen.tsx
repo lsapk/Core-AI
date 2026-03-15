@@ -128,7 +128,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
 
   const confirmMeal = async () => {
     if (!analysisResult) return;
-    const qty = parseFloat(servings) || 1;
+    const qty = parseFloat(servings.replace(',', '.')) || 1;
     try {
       setIsProcessing(true);
       await addMeal({
@@ -256,17 +256,18 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
         </KeyboardAvoidingView>
 
         {/* Analysis Result Modal */}
-        <Modal visible={!!analysisResult} transparent animationType="fade">
+        <Modal visible={!!analysisResult} transparent animationType="slide">
           <View style={styles.modalOverlay}>
             <MotiView 
-              from={{ opacity: 0, scale: 0.9 } as any}
-              animate={{ opacity: 1, scale: 1 } as any}
+              from={{ opacity: 0, translateY: 100 } as any}
+              animate={{ opacity: 1, translateY: 0 } as any}
               style={styles.resultCard}
             >
+              <View style={styles.modalHandle} />
               <View style={styles.resultHeader}>
                 <Text style={styles.resultTitle}>Vérification</Text>
-                <TouchableOpacity onPress={() => setAnalysisResult(null)}>
-                  <X size={24} color={theme.colors.text} />
+                <TouchableOpacity onPress={() => setAnalysisResult(null)} style={styles.modalCloseBtn}>
+                  <X size={20} color={theme.colors.text} />
                 </TouchableOpacity>
               </View>
 
@@ -274,19 +275,19 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
               
               <View style={styles.resultStats}>
                 <View style={styles.resultStat}>
-                  <Text style={styles.statValue}>{Math.round(analysisResult?.calories * (parseFloat(servings) || 1))}</Text>
+                  <Text style={styles.statValue}>{Math.round(analysisResult?.calories * (parseFloat(servings.replace(',', '.')) || 1))}</Text>
                   <Text style={styles.statLabel}>kcal</Text>
                 </View>
                 <View style={styles.resultStat}>
-                  <Text style={styles.statValue}>{Math.round(analysisResult?.protein * (parseFloat(servings) || 1))}g</Text>
+                  <Text style={styles.statValue}>{Math.round(analysisResult?.protein * (parseFloat(servings.replace(',', '.')) || 1))}g</Text>
                   <Text style={styles.statLabel}>Prot</Text>
                 </View>
                 <View style={styles.resultStat}>
-                  <Text style={styles.statValue}>{Math.round(analysisResult?.carbs * (parseFloat(servings) || 1))}g</Text>
+                  <Text style={styles.statValue}>{Math.round(analysisResult?.carbs * (parseFloat(servings.replace(',', '.')) || 1))}g</Text>
                   <Text style={styles.statLabel}>Gluc</Text>
                 </View>
                 <View style={styles.resultStat}>
-                  <Text style={styles.statValue}>{Math.round(analysisResult?.fat * (parseFloat(servings) || 1))}g</Text>
+                  <Text style={styles.statValue}>{Math.round(analysisResult?.fat * (parseFloat(servings.replace(',', '.')) || 1))}g</Text>
                   <Text style={styles.statLabel}>Lip</Text>
                 </View>
               </View>
@@ -305,7 +306,6 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
               </View>
 
               <TouchableOpacity style={styles.confirmResultBtn} onPress={confirmMeal}>
-                <Check size={20} color="white" />
                 <Text style={styles.confirmResultBtnText}>Confirmer</Text>
               </TouchableOpacity>
             </MotiView>
@@ -554,84 +554,102 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing.xl,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'flex-end',
   },
   resultCard: {
     width: '100%',
     backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.xl,
-    padding: theme.spacing.xl,
-    ...theme.shadows.soft,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
+    paddingBottom: 40,
+    ...theme.shadows.medium,
+  },
+  modalHandle: {
+    width: 40,
+    height: 5,
+    backgroundColor: theme.colors.separator,
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   resultHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: 24,
   },
   resultTitle: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '800',
     color: theme.colors.text,
+    letterSpacing: -0.5,
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   foodName: {
-    fontSize: 24,
-    fontWeight: '900',
+    fontSize: 28,
+    fontWeight: '800',
     color: theme.colors.text,
-    marginBottom: theme.spacing.xl,
-    letterSpacing: -0.5,
+    marginBottom: 24,
+    letterSpacing: -1,
   },
   resultStats: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing.xl,
-    paddingVertical: theme.spacing.md,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+    marginBottom: 24,
+    paddingVertical: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: theme.colors.separator,
   },
   resultStat: {
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: theme.colors.text,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: theme.colors.secondaryText,
-    marginTop: 2,
+    marginTop: 4,
   },
   quantityContainer: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: 32,
   },
   quantityLabel: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '600',
     color: theme.colors.secondaryText,
     marginBottom: 8,
+    marginLeft: 4,
   },
   quantityInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.background,
-    borderRadius: theme.radius.lg,
-    paddingHorizontal: theme.spacing.md,
-    height: 54,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 56,
   },
   quantityInput: {
     flex: 1,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '600',
     color: theme.colors.text,
   },
   quantityUnit: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: theme.colors.secondaryText,
     marginLeft: 8,
@@ -639,15 +657,15 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   confirmResultBtn: {
     backgroundColor: theme.colors.primary,
     height: 56,
-    borderRadius: theme.radius.lg,
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    ...theme.shadows.soft,
   },
   confirmResultBtnText: {
     color: 'white',
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '700',
   },
 });

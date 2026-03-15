@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Dimensions, TouchableOpacity, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Dimensions, TouchableOpacity, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { View as MotiView, AnimatePresence } from 'moti';
+import { BlurView } from 'expo-blur';
 import Svg, { Circle } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
-import { ChevronRight, Flame, Target, Utensils, Plus, Droplets, Camera as CameraIcon, Search, X, Bot } from 'lucide-react-native';
+import { ChevronRight, Flame, Target, Utensils, Plus, Droplets, Camera as CameraIcon, Search, X, Bot, Activity, ScanBarcode } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -43,6 +45,7 @@ const ProgressRing = ({ size, strokeWidth, progress, color }: { size: number, st
 export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | 'camera' | 'history' | 'profile') => void }) {
   const theme = useAppTheme();
   const styles = getStyles(theme);
+  const insets = useSafeAreaInsets();
   const { meals, profile, water, addWater, addMeal } = useStore();
   const [isManualModalVisible, setIsManualModalVisible] = useState(false);
   const [manualMeal, setManualMeal] = useState({
@@ -60,17 +63,17 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
       return;
     }
 
-    const cals = parseInt(manualMeal.calories);
+    const cals = parseFloat(manualMeal.calories.replace(',', '.'));
     if (isNaN(cals)) {
       Alert.alert("Erreur", "Les calories doivent être un nombre valide.");
       return;
     }
 
-    const qty = parseFloat(manualMeal.servings);
+    const qty = parseFloat(manualMeal.servings.replace(',', '.'));
     const validQty = isNaN(qty) ? 1 : qty;
 
     const parseMacro = (val: string) => {
-      const parsed = parseFloat(val);
+      const parsed = parseFloat(val.replace(',', '.'));
       return isNaN(parsed) ? 0 : parsed;
     };
 
@@ -113,6 +116,20 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
+      {/* Header */}
+      <View style={styles.header}>
+        <MotiView 
+          from={{ opacity: 0, translateY: -10 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          style={styles.headerLogo}
+        >
+          <View style={styles.logoIcon}>
+            <Activity size={20} color="white" />
+          </View>
+          <Text style={styles.headerTitle}>Core AI</Text>
+        </MotiView>
+      </View>
+
       {/* Summary Card */}
       <MotiView 
         from={{ opacity: 0, scale: 0.95 }}
@@ -199,11 +216,11 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
           <Text style={styles.actionLabel}>AI Chat</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.actionBtn}>
+        <TouchableOpacity style={styles.actionBtn} onPress={() => onNavigate('camera')}>
           <View style={[styles.actionIcon, { backgroundColor: theme.colors.blue }]}>
-            <Search size={24} color="white" />
+            <ScanBarcode size={24} color="white" />
           </View>
-          <Text style={styles.actionLabel}>Chercher</Text>
+          <Text style={styles.actionLabel}>Scanner</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionBtn} onPress={() => setIsManualModalVisible(true)}>
@@ -310,72 +327,112 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
       )}
 
       {/* Manual Entry Modal */}
-      <Modal visible={isManualModalVisible} animationType="slide" transparent={true}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <MotiView from={{ translateY: 300 }} animate={{ translateY: 0 }} style={styles.modalContent}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Ajout manuel</Text>
-                <TouchableOpacity onPress={() => setIsManualModalVisible(false)}>
-                  <X size={24} color={theme.colors.text} />
+      <Modal visible={isManualModalVisible} animationType="fade" transparent={true}>
+        <BlurView intensity={theme.isDark ? 40 : 20} tint={theme.isDark ? "dark" : "light"} style={styles.modalOverlay}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalKeyboardAvoid}
+          >
+            <MotiView 
+              from={{ translateY: 400, opacity: 0 }} 
+              animate={{ translateY: 0, opacity: 1 }} 
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom, 20) + 20 }]}
+            >
+              <View style={styles.modalHandle} />
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Ajout manuel</Text>
+                  <TouchableOpacity 
+                    onPress={() => setIsManualModalVisible(false)}
+                    style={styles.modalCloseBtn}
+                  >
+                    <X size={20} color={theme.colors.secondaryText} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Nom du repas</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ex: Salade César"
+                    placeholderTextColor={theme.colors.secondaryText}
+                    value={manualMeal.foodName}
+                    onChangeText={(v) => setManualMeal({...manualMeal, foodName: v})}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Calories (kcal)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="0"
+                    placeholderTextColor={theme.colors.secondaryText}
+                    keyboardType="numeric"
+                    value={manualMeal.calories}
+                    onChangeText={(v) => setManualMeal({...manualMeal, calories: v})}
+                  />
+                </View>
+                
+                <View style={styles.macrosInputRow}>
+                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                    <Text style={styles.inputLabel}>Prot (g)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="0"
+                      placeholderTextColor={theme.colors.secondaryText}
+                      keyboardType="numeric"
+                      value={manualMeal.protein}
+                      onChangeText={(v) => setManualMeal({...manualMeal, protein: v})}
+                    />
+                  </View>
+                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                    <Text style={styles.inputLabel}>Gluc (g)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="0"
+                      placeholderTextColor={theme.colors.secondaryText}
+                      keyboardType="numeric"
+                      value={manualMeal.carbs}
+                      onChangeText={(v) => setManualMeal({...manualMeal, carbs: v})}
+                    />
+                  </View>
+                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                    <Text style={styles.inputLabel}>Lip (g)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="0"
+                      placeholderTextColor={theme.colors.secondaryText}
+                      keyboardType="numeric"
+                      value={manualMeal.fat}
+                      onChangeText={(v) => setManualMeal({...manualMeal, fat: v})}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Quantité (ex: 1.5)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="1"
+                    placeholderTextColor={theme.colors.secondaryText}
+                    keyboardType="numeric"
+                    value={manualMeal.servings}
+                    onChangeText={(v) => setManualMeal({...manualMeal, servings: v})}
+                  />
+                </View>
+
+                <TouchableOpacity 
+                  style={styles.submitBtn} 
+                  onPress={handleManualSubmit}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.submitBtnText}>Ajouter le repas</Text>
                 </TouchableOpacity>
-              </View>
-
-              <TextInput
-                style={styles.input}
-                placeholder="Nom du repas"
-                value={manualMeal.foodName}
-                onChangeText={(v) => setManualMeal({...manualMeal, foodName: v})}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Calories"
-                keyboardType="numeric"
-                value={manualMeal.calories}
-                onChangeText={(v) => setManualMeal({...manualMeal, calories: v})}
-              />
-              
-              <View style={styles.macrosInputRow}>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder="Prot (g)"
-                  keyboardType="numeric"
-                  value={manualMeal.protein}
-                  onChangeText={(v) => setManualMeal({...manualMeal, protein: v})}
-                />
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder="Gluc (g)"
-                  keyboardType="numeric"
-                  value={manualMeal.carbs}
-                  onChangeText={(v) => setManualMeal({...manualMeal, carbs: v})}
-                />
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder="Lip (g)"
-                  keyboardType="numeric"
-                  value={manualMeal.fat}
-                  onChangeText={(v) => setManualMeal({...manualMeal, fat: v})}
-                />
-              </View>
-
-              <TextInput
-                style={styles.input}
-                placeholder="Quantité (ex: 1.5)"
-                keyboardType="numeric"
-                value={manualMeal.servings}
-                onChangeText={(v) => setManualMeal({...manualMeal, servings: v})}
-              />
-
-              <TouchableOpacity style={styles.submitBtn} onPress={handleManualSubmit}>
-                <Text style={styles.submitBtnText}>Ajouter le repas</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </MotiView>
-        </KeyboardAvoidingView>
+              </ScrollView>
+            </MotiView>
+          </KeyboardAvoidingView>
+        </BlurView>
       </Modal>
     </ScrollView>
   );
@@ -384,6 +441,32 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
 const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   content: { padding: theme.spacing.lg, paddingBottom: 120 },
+  header: { 
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  headerLogo: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  logoIcon: { 
+    width: 36, 
+    height: 36, 
+    backgroundColor: theme.colors.primary, 
+    borderRadius: 12, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginRight: 12,
+    ...theme.shadows.soft,
+  },
+  headerTitle: { 
+    fontSize: 32, 
+    fontWeight: '800', 
+    color: theme.colors.text,
+    letterSpacing: -1,
+  },
   card: { 
     backgroundColor: theme.colors.card, 
     borderRadius: theme.radius.xl, 
@@ -476,12 +559,17 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   mealCals: { fontSize: 14, fontWeight: '600', color: theme.colors.primary },
   emptyCard: { padding: 40, alignItems: 'center', opacity: 0.5 },
   emptyText: { marginTop: 10, color: theme.colors.secondaryText, fontWeight: '600' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: theme.colors.card, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: theme.spacing.xl },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 22, fontWeight: '800', color: theme.colors.text },
-  input: { backgroundColor: theme.colors.background, borderRadius: 12, padding: 15, marginBottom: 15, fontSize: 16, fontWeight: '600', color: theme.colors.text },
-  macrosInputRow: { flexDirection: 'row', gap: 10 },
-  submitBtn: { backgroundColor: theme.colors.primary, padding: 18, borderRadius: 15, alignItems: 'center', marginTop: 10 },
-  submitBtnText: { color: 'white', fontSize: 18, fontWeight: '800' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-end' },
+  modalKeyboardAvoid: { flex: 1, justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: theme.colors.card, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: theme.spacing.xl, paddingBottom: 40, ...theme.shadows.medium },
+  modalHandle: { width: 40, height: 5, backgroundColor: theme.colors.separator, borderRadius: 3, alignSelf: 'center', marginBottom: 20 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  modalTitle: { fontSize: 24, fontWeight: '800', color: theme.colors.text, letterSpacing: -0.5 },
+  modalCloseBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' },
+  inputGroup: { marginBottom: 16 },
+  inputLabel: { fontSize: 13, fontWeight: '600', color: theme.colors.secondaryText, marginBottom: 8, marginLeft: 4 },
+  input: { backgroundColor: theme.colors.background, borderRadius: 16, padding: 16, fontSize: 16, fontWeight: '500', color: theme.colors.text },
+  macrosInputRow: { flexDirection: 'row', gap: 12 },
+  submitBtn: { backgroundColor: theme.colors.primary, padding: 18, borderRadius: 20, alignItems: 'center', marginTop: 24, ...theme.shadows.soft },
+  submitBtnText: { color: 'white', fontSize: 17, fontWeight: '700' },
 });

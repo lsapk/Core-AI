@@ -86,20 +86,6 @@ function AppContent() {
       <StatusBar barStyle="dark-content" />
       
       <View style={[styles.main, { paddingTop: insets.top }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <MotiView 
-            from={{ opacity: 0, translateY: -10 } as any}
-            animate={{ opacity: 1, translateY: 0 } as any}
-            style={styles.headerLogo}
-          >
-            <View style={styles.logoIcon}>
-              <Activity size={20} color="white" />
-            </View>
-            <Text style={styles.headerTitle}>Core AI</Text>
-          </MotiView>
-        </View>
-
         {/* Main Content */}
         <View style={styles.content}>
           <AnimatePresence mode="wait" {...({} as any)}>
@@ -214,40 +200,6 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   main: {
     flex: 1,
   },
-  header: { 
-    paddingHorizontal: theme.spacing.lg, 
-    paddingTop: theme.spacing.sm,
-    paddingBottom: theme.spacing.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerLogo: { 
-    flexDirection: 'row', 
-    alignItems: 'center' 
-  },
-  logoIcon: { 
-    width: 32, 
-    height: 32, 
-    backgroundColor: theme.colors.primary, 
-    borderRadius: 10, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 10,
-    ...theme.shadows.soft,
-  },
-  logoImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    marginRight: 10,
-  },
-  headerTitle: { 
-    fontSize: 28, 
-    fontWeight: '800', 
-    color: theme.colors.text,
-    letterSpacing: -0.5,
-  },
   content: { 
     flex: 1 
   },
@@ -260,40 +212,43 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     left: 0,
     right: 0,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0,0,0,0.1)',
+    borderTopColor: theme.colors.separator,
   },
   navBar: { 
     flexDirection: 'row', 
-    height: 60, 
+    height: 65, 
     alignItems: 'center', 
     justifyContent: 'space-around',
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.md,
   },
   navItem: { 
     alignItems: 'center', 
     justifyContent: 'center', 
-    flex: 1 
+    flex: 1,
+    height: '100%',
   },
   navText: { 
-    fontSize: 11, 
+    fontSize: 10, 
     color: theme.colors.secondaryText, 
     marginTop: 4, 
-    fontWeight: '600' 
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   navTextActive: { 
-    color: theme.colors.primary 
+    color: theme.colors.primary,
+    fontWeight: '700',
   },
   cameraButton: {
     width: 70,
     height: 70,
     justifyContent: 'center',
     alignItems: 'center',
-    top: -20,
+    top: -15,
   },
   cameraButtonInner: { 
-    width: 60, 
-    height: 60, 
-    borderRadius: 30, 
+    width: 56, 
+    height: 56, 
+    borderRadius: 28, 
     backgroundColor: theme.colors.primary, 
     justifyContent: 'center', 
     alignItems: 'center', 
