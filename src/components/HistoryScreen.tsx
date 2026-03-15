@@ -61,10 +61,11 @@ export default function HistoryScreen() {
           keyExtractor: (item: any) => item.title,
           estimatedItemSize: 200,
           contentContainerStyle: styles.listContent,
-          renderItem: ({ item: group }: any) => (
+          renderItem: ({ item: group, index }: any) => (
             <MotiView 
               from={{ opacity: 0, translateY: 20 }}
               animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'spring', delay: Math.min(index * 50, 500) }}
               style={styles.dayGroup}
             >
               <View style={styles.dayHeader}>
@@ -97,6 +98,9 @@ export default function HistoryScreen() {
                         <Text style={styles.servingsText}>x{meal.servings}</Text>
                       )}
                     </View>
+                    <Text style={styles.mealTypeLabel}>
+                      {meal.mealType === 'breakfast' ? 'Petit déj' : meal.mealType === 'lunch' ? 'Déjeuner' : meal.mealType === 'dinner' ? 'Dîner' : meal.mealType === 'snack' ? 'Collation' : 'Repas'}
+                    </Text>
                     <View style={styles.macrosRow}>
                       <Text style={[styles.macroText, { color: theme.colors.primary }]}>{meal.calories} kcal</Text>
                       <View style={styles.dot} />
@@ -159,6 +163,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   mealImagePlaceholder: { width: 60, height: 60, borderRadius: 14, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' },
   mealInfo: { marginLeft: 16, flex: 1 },
   mealName: { fontSize: 17, fontWeight: '600', color: theme.colors.text, marginBottom: 2, letterSpacing: -0.3 },
+  mealTypeLabel: { fontSize: 13, fontWeight: '500', color: theme.colors.primary, marginBottom: 4 },
   servingsText: { fontSize: 13, fontWeight: '700', color: theme.colors.primary, backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
   macrosRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   macroText: { fontSize: 13, fontWeight: '500', color: theme.colors.secondaryText },

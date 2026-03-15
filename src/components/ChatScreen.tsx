@@ -116,7 +116,7 @@ export default function ChatScreen() {
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <FlashList
@@ -174,7 +174,7 @@ export default function ChatScreen() {
         </View>
       )}
 
-      <BlurView intensity={theme.isDark ? 80 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.inputContainer, { paddingBottom: isKeyboardVisible ? theme.spacing.md : insets.bottom + 60 + theme.spacing.md }]}>
+      <BlurView intensity={theme.isDark ? 80 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.inputContainer, { paddingBottom: isKeyboardVisible ? theme.spacing.sm : Math.max(insets.bottom, 20) + 65 }]}>
         <TextInput
           style={styles.input}
           placeholder="Dis-moi tout..."
@@ -205,19 +205,19 @@ const markdownStyles = (theme: ReturnType<typeof useAppTheme>) => ({
   },
   table: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.separator,
     borderRadius: 8,
     marginTop: 8,
     marginBottom: 8,
   },
   tr: {
     borderBottomWidth: 1,
-    borderColor: theme.colors.border,
-    flexDirection: 'row',
+    borderColor: theme.colors.separator,
+    flexDirection: 'row' as const,
   },
   th: {
     padding: 8,
-    fontWeight: 'bold',
+    fontWeight: 'bold' as const,
     backgroundColor: theme.colors.background,
     color: theme.colors.text,
     flex: 1,
@@ -228,11 +228,11 @@ const markdownStyles = (theme: ReturnType<typeof useAppTheme>) => ({
     flex: 1,
   },
   strong: {
-    fontWeight: 'bold',
+    fontWeight: 'bold' as const,
     color: theme.colors.text,
   },
   em: {
-    fontStyle: 'italic',
+    fontStyle: 'italic' as const,
     color: theme.colors.text,
   },
   p: {

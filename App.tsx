@@ -94,7 +94,7 @@ function AppContent() {
               from={{ opacity: 0, scale: 0.98 } as any}
               animate={{ opacity: 1, scale: 1 } as any}
               exit={{ opacity: 0, scale: 1.02 } as any}
-              transition={{ type: 'timing', duration: 300 } as any}
+              transition={{ type: 'timing', duration: 200 } as any}
               style={styles.contentWrapper}
             >
               {renderContent()}
