@@ -24,6 +24,7 @@ const addMealTool: FunctionDeclaration = {
       carbs: { type: Type.NUMBER, description: "Grams of carbohydrates." },
       fat: { type: Type.NUMBER, description: "Grams of fat." },
       servings: { type: Type.NUMBER, description: "Number of servings or quantity (default 1)." },
+      date: { type: Type.STRING, description: "The specific ISO 8601 date and time the meal was consumed. Ex: 2024-03-15T12:00:00.000Z. If omitted, current time is used." },
     },
     required: ["foodName", "calories"],
   },
@@ -150,7 +151,8 @@ Chaque réponse doit suivre scrupuleusement ce plan:
 - Clôture : Termine par une seule petite phrase en gras et italique résumant factuellement l'état des besoins restants.
 
 # DIRECTIVE TECHNIQUE ABSOLUE
-Tu DOIS utiliser l'outil 'add_meal' pour enregistrer CHAQUE repas analysé. Fais-le de manière invisible pour l'utilisateur, tout en lui fournissant la réponse texte formatée ci-dessus.`;
+Tu DOIS utiliser l'outil 'add_meal' pour enregistrer CHAQUE repas analysé. Fais-le de manière invisible pour l'utilisateur, tout en lui fournissant la réponse texte formatée ci-dessus.
+IMPORTANT: Si l'utilisateur mentionne une date relative (ex: 'hier soir', 'ce matin', 'mardi dernier'), tu DOIS calculer la date ISO 8601 correspondante par rapport à la date actuelle (${todayDate}) et la passer dans le champ 'date' de l'outil 'add_meal'. Si aucune date n'est précisée, omet le champ 'date'.`;
 
     const contents = [];
     if (history && Array.isArray(history)) {

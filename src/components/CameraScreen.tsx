@@ -3,9 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet, Image, Alert, Dimensions, Tex
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
 import { BlurView } from 'expo-blur';
 import { View as MotiView, AnimatePresence } from 'moti';
-import { X, Zap, ScanBarcode, Camera as CameraIcon, Loader2, Check, Type, Plus } from 'lucide-react-native';
+import { X, Zap, ScanBarcode, Camera as CameraIcon, Loader2, Check, Type, Plus, ImagePlus } from 'lucide-react-native';
 import { analyzeMealImage, analyzeMealText } from '../services/gemini';
 import { fetchProductByBarcode } from '../services/openFoodFacts';
 import { useStore } from '../store/useStore';
@@ -70,6 +71,37 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
     } catch (error: any) {
       console.error("Barcode scan error:", error);
       Alert.alert("Erreur", `Produit introuvable ou erreur réseau. (${error.message || 'Erreur inconnue'})`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const pickImage = async () => {
+    if (isProcessing) return;
+    try {
+      setIsProcessing(true);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        const manipResult = await ImageManipulator.manipulateAsync(
+          result.assets[0].uri,
+          [{ resize: { width: 800 } }],
+          { compress: 0.7, base64: true }
+        );
+
+        setPreview(manipResult.uri);
+
+        if (manipResult.base64) {
+          setBase64Image(manipResult.base64);
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Error picking image. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -277,7 +309,16 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
                     </View>
                   </TouchableOpacity>
 
-                  <View style={styles.sideButtonPlaceholder} />
+                  <TouchableOpacity
+                    style={styles.sideButton}
+                    onPress={pickImage}
+                    activeOpacity={0.7}
+                  >
+                    <BlurView intensity={40} tint="dark" style={styles.blurSideButton}>
+                      <ImagePlus size={24} color="white" />
+                      <Text style={styles.sideButtonText}>Galerie</Text>
+                    </BlurView>
+                  </TouchableOpacity>
                 </>
               ) : (
                 <View style={styles.scanningOverlay}>
