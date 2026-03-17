@@ -91,10 +91,10 @@ function AppContent() {
           <AnimatePresence mode="wait" {...({} as any)}>
             <MotiView
               key={activeTab}
-              from={{ opacity: 0, scale: 0.98 } as any}
-              animate={{ opacity: 1, scale: 1 } as any}
-              exit={{ opacity: 0, scale: 1.02 } as any}
-              transition={{ type: 'timing', duration: 200 } as any}
+              from={{ opacity: 0, translateX: 50, scale: 0.98 } as any}
+              animate={{ opacity: 1, translateX: 0, scale: 1 } as any}
+              exit={{ opacity: 0, translateX: -50, scale: 0.98 } as any}
+              transition={{ type: 'spring', damping: 20, stiffness: 200 } as any}
               style={styles.contentWrapper}
             >
               {renderContent()}
@@ -104,8 +104,17 @@ function AppContent() {
       </View>
 
       {/* Bottom Navigation */}
-      <BlurView intensity={80} tint="light" style={[styles.navBarContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-        <View style={styles.navBar}>
+      <AnimatePresence>
+        {activeTab !== 'camera' && (
+          <MotiView
+            from={{ translateY: 100 } as any}
+            animate={{ translateY: 0 } as any}
+            exit={{ translateY: 100 } as any}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 } as any}
+            style={[styles.navBarContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}
+          >
+            <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
+            <View style={styles.navBar}>
           <TouchableOpacity 
             style={styles.navItem} 
             onPress={() => setActiveTab('home')}
@@ -139,7 +148,7 @@ function AppContent() {
           >
             <MotiView
               animate={{
-                scale: activeTab === 'camera' ? 1.1 : 1,
+                scale: activeTab === ('camera' as string) ? 1.1 : 1,
               }}
               style={styles.cameraButtonInner}
             >
@@ -172,8 +181,10 @@ function AppContent() {
             />
             <Text style={[styles.navText, activeTab === 'profile' && styles.navTextActive]}>Profile</Text>
           </TouchableOpacity>
-        </View>
-      </BlurView>
+            </View>
+          </MotiView>
+        )}
+      </AnimatePresence>
     </View>
   );
 }
@@ -213,6 +224,8 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     right: 0,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.separator,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    overflow: 'hidden',
   },
   navBar: { 
     flexDirection: 'row', 
