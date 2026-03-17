@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { useStore, ChatMessage } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
-import { Send, Bot } from 'lucide-react-native';
+import { Send, Bot, Mic } from 'lucide-react-native';
 import { chatWithAI } from '../services/gemini';
 import Markdown from 'react-native-markdown-display';
 
@@ -75,8 +75,19 @@ export default function ChatScreen() {
         for (const call of response.functionCalls) {
           if (call.name === 'add_meal') {
             const args = call.args as any;
+            let mealDate = new Date().toISOString();
+            if (args.date) {
+               try {
+                   const parsedDate = new Date(args.date);
+                   if (!isNaN(parsedDate.getTime())) {
+                       mealDate = parsedDate.toISOString();
+                   }
+               } catch(e) {
+                   console.warn("Invalid date returned from AI, using current time.", e);
+               }
+            }
             await addMeal({
-              date: new Date().toISOString(),
+              date: mealDate,
               foodName: args.foodName,
               calories: args.calories,
               protein: args.protein || 0,
@@ -184,14 +195,26 @@ export default function ChatScreen() {
           multiline
           maxLength={500}
         />
-        <TouchableOpacity 
-          style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]} 
-          onPress={handleSend}
-          disabled={!inputText.trim() || isTyping}
-          activeOpacity={0.7}
-        >
-          <Send size={18} color="white" style={{ marginLeft: -2 }} />
-        </TouchableOpacity>
+        {inputText.trim() ? (
+          <TouchableOpacity
+            style={[styles.sendBtn, isTyping && styles.sendBtnDisabled]}
+            onPress={handleSend}
+            disabled={!inputText.trim() || isTyping}
+            activeOpacity={0.7}
+          >
+            <Send size={18} color="white" style={{ marginLeft: -2 }} />
+          </TouchableOpacity>
+        ) : (
+           <TouchableOpacity
+             style={[styles.sendBtn, { backgroundColor: theme.colors.card }]}
+             disabled={true}
+           >
+             <Mic size={18} color={theme.colors.secondaryText} />
+             <View style={styles.comingSoonBadge}>
+               <Text style={styles.comingSoonText}>Bientôt</Text>
+             </View>
+           </TouchableOpacity>
+        )}
       </BlurView>
     </KeyboardAvoidingView>
   );
@@ -303,6 +326,20 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     marginBottom: 2,
   },
   sendBtnDisabled: { opacity: 0.5 },
+  comingSoonBadge: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  comingSoonText: {
+    color: 'white',
+    fontSize: 8,
+    fontWeight: 'bold',
+  },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',

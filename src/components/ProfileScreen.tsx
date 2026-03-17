@@ -34,6 +34,12 @@ export default function ProfileScreen() {
     }
   };
 
+  const FeatureSoonBadge = () => (
+    <View style={styles.comingSoonBadge}>
+      <Text style={styles.comingSoonText}>Bientôt</Text>
+    </View>
+  );
+
   const handleDeleteAccount = () => {
     Alert.alert(
       "Delete Account",
@@ -136,6 +142,22 @@ export default function ProfileScreen() {
         {renderMenuItem(Shield, 'Privacy Policy', () => setShowPrivacy(true))}
         <View style={styles.separator} />
         {renderMenuItem(Settings, 'App Settings', () => setShowSettings(true))}
+        <View style={styles.separator} />
+        <TouchableOpacity style={styles.menuItem} disabled={true}>
+          <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
+            <Target size={20} color="#ef4444" />
+          </View>
+          <Text style={styles.menuLabel}>Apple Health / Google Fit</Text>
+          <FeatureSoonBadge />
+        </TouchableOpacity>
+        <View style={styles.separator} />
+        <TouchableOpacity style={styles.menuItem} disabled={true}>
+          <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(34, 197, 94, 0.1)' }]}>
+            <Weight size={20} color="#22c55e" />
+          </View>
+          <Text style={styles.menuLabel}>Suivi du Poids</Text>
+          <FeatureSoonBadge />
+        </TouchableOpacity>
       </View>
 
       {/* Account Section */}
@@ -382,5 +404,17 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   settingValue: {
     fontSize: 16,
     color: theme.colors.secondaryText,
-  }
+  },
+  comingSoonBadge: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginLeft: 'auto',
+  },
+  comingSoonText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
 });
