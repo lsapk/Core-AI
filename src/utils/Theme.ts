@@ -2,12 +2,13 @@ import { useColorScheme } from 'react-native';
 import { useStore } from '../store/useStore';
 
 export const lightColors = {
-  background: '#F2F2F7',
+  background: '#F8F9FA',
   card: '#FFFFFF',
-  primary: '#10b981',
+  primary: '#000000',
+  accent: '#10b981',
   text: '#000000',
-  secondaryText: '#8E8E93',
-  separator: '#C6C6C8',
+  secondaryText: '#6C757D',
+  separator: '#E9ECEF',
   white: '#FFFFFF',
   blue: '#007AFF',
   orange: '#FF9500',
@@ -16,11 +17,12 @@ export const lightColors = {
 
 export const darkColors = {
   background: '#000000',
-  card: '#1C1C1E',
-  primary: '#10b981',
+  card: '#121212',
+  primary: '#FFFFFF',
+  accent: '#10b981',
   text: '#FFFFFF',
-  secondaryText: '#8E8E93',
-  separator: '#38383A',
+  secondaryText: '#A0A0A0',
+  separator: '#2C2C2E',
   white: '#FFFFFF',
   blue: '#0A84FF',
   orange: '#FF9F0A',
@@ -48,17 +50,17 @@ export const radius = {
 export const shadows = {
   soft: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
     elevation: 2,
   },
   medium: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
   },
 };
 

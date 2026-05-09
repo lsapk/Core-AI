@@ -91,10 +91,10 @@ function AppContent() {
           <AnimatePresence mode="wait" {...({} as any)}>
             <MotiView
               key={activeTab}
-              from={{ opacity: 0, translateX: 50, scale: 0.98 } as any}
-              animate={{ opacity: 1, translateX: 0, scale: 1 } as any}
-              exit={{ opacity: 0, translateX: -50, scale: 0.98 } as any}
-              transition={{ type: 'spring', damping: 20, stiffness: 200 } as any}
+              from={{ opacity: 0, scale: 0.95 } as any}
+              animate={{ opacity: 1, scale: 1 } as any}
+              exit={{ opacity: 0, scale: 1.05 } as any}
+              transition={{ type: 'timing', duration: 300 } as any}
               style={styles.contentWrapper}
             >
               {renderContent()}
@@ -219,13 +219,15 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   },
   navBarContainer: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.separator,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    bottom: 25,
+    left: 20,
+    right: 20,
+    borderRadius: 35,
+    backgroundColor: theme.isDark ? 'rgba(30,30,30,0.7)' : 'rgba(255,255,255,0.8)',
     overflow: 'hidden',
+    ...theme.shadows.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
   },
   navBar: { 
     flexDirection: 'row', 
@@ -265,6 +267,6 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     backgroundColor: theme.colors.primary, 
     justifyContent: 'center', 
     alignItems: 'center', 
-    ...theme.shadows.medium,
+    ...theme.shadows.soft,
   },
 });

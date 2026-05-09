@@ -39,6 +39,7 @@ export interface UserProfile {
   protein_goal: number;
   carbs_goal: number;
   fat_goal: number;
+  water_goal: number;
   onboarding_completed: boolean;
 }
 
@@ -120,6 +121,7 @@ export const useStore = create<AppState>()(
                 protein_goal: 150,
                 carbs_goal: 200,
                 fat_goal: 65,
+                water_goal: 2500,
                 onboarding_completed: false
               } 
             });
@@ -141,6 +143,7 @@ export const useStore = create<AppState>()(
                 protein_goal: 150,
                 carbs_goal: 200,
                 fat_goal: 65,
+                water_goal: 2500,
                 onboarding_completed: false
               } 
             });
@@ -161,6 +164,7 @@ export const useStore = create<AppState>()(
               protein_goal: 150,
               carbs_goal: 200,
               fat_goal: 65,
+              water_goal: 2500,
               onboarding_completed: false
             } 
           });
