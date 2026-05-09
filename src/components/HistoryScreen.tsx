@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import { View as MotiView } from 'moti';
 import { FlashList } from '@shopify/flash-list';
@@ -8,7 +8,7 @@ import { Trash2, Calendar, Utensils } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
-export default function HistoryScreen() {
+function HistoryScreen() {
   const theme = useAppTheme();
   const styles = getStyles(theme);
   const { meals, removeMeal } = useStore();
@@ -133,6 +133,8 @@ export default function HistoryScreen() {
   );
 }
 
+export default memo(HistoryScreen);
+
 const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { padding: theme.spacing.lg, paddingBottom: 0 },
@@ -147,23 +149,25 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     paddingHorizontal: 4,
   },
   dayTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text, textTransform: 'capitalize', letterSpacing: -0.5 },
-  dayBadge: { backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  dayCalsText: { color: theme.colors.primary, fontWeight: '700', fontSize: 13 },
+  dayBadge: { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  dayCalsText: { color: theme.colors.text, fontWeight: '700', fontSize: 13 },
   mealCard: { 
     flexDirection: 'row', 
     backgroundColor: theme.colors.card, 
-    borderRadius: 16, 
+    borderRadius: 20,
     padding: 12, 
     marginBottom: 12, 
     alignItems: 'center', 
-    ...theme.shadows.soft 
+    ...theme.shadows.soft,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
   },
   mealImageContainer: { ...theme.shadows.soft },
   mealImage: { width: 60, height: 60, borderRadius: 14 },
   mealImagePlaceholder: { width: 60, height: 60, borderRadius: 14, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' },
   mealInfo: { marginLeft: 16, flex: 1 },
   mealName: { fontSize: 17, fontWeight: '600', color: theme.colors.text, marginBottom: 2, letterSpacing: -0.3 },
-  mealTypeLabel: { fontSize: 13, fontWeight: '500', color: theme.colors.primary, marginBottom: 4 },
+  mealTypeLabel: { fontSize: 13, fontWeight: '500', color: theme.colors.secondaryText, marginBottom: 4 },
   servingsText: { fontSize: 13, fontWeight: '700', color: theme.colors.primary, backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
   macrosRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   macroText: { fontSize: 13, fontWeight: '500', color: theme.colors.secondaryText },

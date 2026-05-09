@@ -47,7 +47,9 @@ export default function AuthScreen() {
           animate={{ opacity: 1, scale: 1 } as any}
           style={styles.logoContainer}
         >
-          <Activity size={40} color="white" />
+          <View style={styles.logoIcon}>
+            <Activity size={40} color="white" />
+          </View>
         </MotiView>
         <Text style={styles.logoText}>Core AI</Text>
         <Text style={styles.logoSub}>Your AI Nutrition Partner</Text>
@@ -127,7 +129,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 50,
+    marginBottom: 40,
   },
   logoIcon: {
     width: 80,
@@ -137,24 +139,29 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...theme.shadows.medium,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   logoText: {
-    fontSize: 32,
-    fontWeight: '800',
+    fontSize: 36,
+    fontWeight: '900',
     color: theme.colors.text,
-    letterSpacing: -1,
+    letterSpacing: -1.5,
+    textAlign: 'center',
   },
   logoSub: {
     fontSize: 16,
     color: theme.colors.secondaryText,
-    fontWeight: '500',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 40,
   },
   form: {
     backgroundColor: theme.colors.card,
     borderRadius: 32,
-    padding: 32,
+    padding: 24,
     ...theme.shadows.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
   },
   title: {
     fontSize: 28,
@@ -190,12 +197,12 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   button: {
     backgroundColor: theme.colors.primary,
     height: 56,
-    borderRadius: 20,
+    borderRadius: 28,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 16,
-    ...theme.shadows.soft,
+    ...theme.shadows.medium,
   },
   buttonText: {
     color: 'white',

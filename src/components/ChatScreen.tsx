@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard } from 'react-native';
 import { View as MotiView } from 'moti';
 import { FlashList } from '@shopify/flash-list';
@@ -10,7 +10,7 @@ import { Send, Bot, Mic } from 'lucide-react-native';
 import { chatWithAI } from '../services/gemini';
 import Markdown from 'react-native-markdown-display';
 
-export default function ChatScreen() {
+function ChatScreen() {
   const theme = useAppTheme();
   const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
@@ -40,7 +40,7 @@ export default function ChatScreen() {
     };
   }, []);
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     if (!inputText.trim()) return;
 
     const userMessage = inputText.trim();
@@ -116,7 +116,7 @@ export default function ChatScreen() {
     } finally {
       setIsTyping(false);
     }
-  };
+  }, [inputText, messages, addMessage, meals, profile, addMeal, addWater]);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -220,6 +220,8 @@ export default function ChatScreen() {
   );
 }
 
+export default memo(ChatScreen);
+
 const markdownStyles = (theme: ReturnType<typeof useAppTheme>) => ({
   body: {
     color: theme.colors.text,
@@ -279,13 +281,16 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   userBubble: {
     backgroundColor: theme.colors.primary,
     borderBottomRightRadius: 4,
+    ...theme.shadows.medium,
   },
   botBubble: {
     backgroundColor: theme.colors.card,
     borderBottomLeftRadius: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
   },
   messageText: { fontSize: 16, lineHeight: 22 },
-  userText: { color: 'white', fontWeight: '500' },
+  userText: { color: 'white', fontWeight: '600' },
   botText: { color: theme.colors.text },
   timestamp: {
     fontSize: 11,
@@ -304,17 +309,18 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   input: {
     flex: 1,
     backgroundColor: theme.colors.card,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 14,
     fontSize: 16,
-    maxHeight: 120,
-    minHeight: 40,
+    maxHeight: 150,
+    minHeight: 48,
     marginRight: 12,
     color: theme.colors.text,
+    ...theme.shadows.soft,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.separator,
+    borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
   },
   sendBtn: {
     width: 40,

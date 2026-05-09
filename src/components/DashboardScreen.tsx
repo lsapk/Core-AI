@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, memo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, Dimensions, TouchableOpacity, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { View as MotiView, AnimatePresence } from 'moti';
 import { BlurView } from 'expo-blur';
@@ -6,11 +6,11 @@ import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
-import { ChevronRight, Flame, Target, Utensils, Plus, Droplets, Camera as CameraIcon, Search, X, Bot, Activity, ScanBarcode } from 'lucide-react-native';
+import { ChevronRight, Flame, Target, Utensils, Plus, Droplets, Camera as CameraIcon, Search, X, Bot, Activity, ScanBarcode, User } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
-const ProgressRing = ({ size, strokeWidth, progress, color }: { size: number, strokeWidth: number, progress: number, color: string }) => {
+const ProgressRing = memo(({ size, strokeWidth, progress, color }: { size: number, strokeWidth: number, progress: number, color: string }) => {
   const theme = useAppTheme();
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -40,9 +40,9 @@ const ProgressRing = ({ size, strokeWidth, progress, color }: { size: number, st
       />
     </Svg>
   );
-};
+});
 
-export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | 'camera' | 'history' | 'profile') => void }) {
+function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | 'camera' | 'history' | 'profile') => void }) {
   const theme = useAppTheme();
   const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
@@ -98,6 +98,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
   const proteinGoal = profile?.protein_goal || 150;
   const carbsGoal = profile?.carbs_goal || 200;
   const fatGoal = profile?.fat_goal || 65;
+  const waterGoal = profile?.water_goal || 2500;
 
   const today = new Date().toISOString().split('T')[0];
   const todaysMeals = useMemo(() => meals.filter(meal => meal.date.startsWith(today)), [meals, today]);
@@ -121,13 +122,14 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
         <MotiView 
           from={{ opacity: 0, translateY: -10 }}
           animate={{ opacity: 1, translateY: 0 }}
-          style={styles.headerLogo}
+          style={styles.headerTop}
         >
-          <View style={styles.logoIcon}>
-            <Activity size={20} color="white" />
-          </View>
-          <Text style={styles.headerTitle}>Core AI</Text>
+          <Text style={styles.headerGreeting}>Bonjour,</Text>
+          <Text style={styles.headerName}>{profile?.email?.split('@')[0] || 'Ami'}</Text>
         </MotiView>
+        <TouchableOpacity style={styles.headerProfile} onPress={() => onNavigate('profile')}>
+           <User size={24} color={theme.colors.text} />
+        </TouchableOpacity>
       </View>
 
       {/* Summary Card */}
@@ -149,7 +151,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
               size={160} 
               strokeWidth={14} 
               progress={progress} 
-              color={theme.colors.primary} 
+              color={theme.colors.accent}
             />
             <View style={styles.circleOverlay}>
               <Text style={styles.caloriesText}>{remainingCalories}</Text>
@@ -235,16 +237,17 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
       <TouchableOpacity 
         style={styles.aiCard}
         onPress={() => onNavigate('chat')}
+        activeOpacity={0.9}
       >
         <View style={styles.aiCardContent}>
           <View style={styles.aiIconContainer}>
             <Bot size={24} color="white" />
           </View>
           <View style={styles.aiTextContainer}>
-            <Text style={styles.aiTitle}>AI Nutritionist</Text>
+            <Text style={styles.aiTitle}>Assistant IA</Text>
             <Text style={styles.aiSub}>"Combien de calories dans un croissant ?"</Text>
           </View>
-          <ChevronRight size={20} color={theme.colors.secondaryText} />
+          <ChevronRight size={20} color="white" />
         </View>
       </TouchableOpacity>
 
@@ -259,7 +262,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
             <Droplets size={20} color={theme.colors.blue} />
             <Text style={styles.waterTitle}>Hydratation</Text>
           </View>
-          <Text style={styles.waterGoal}>Objectif: 2.5L</Text>
+          <Text style={styles.waterGoal}>Objectif: {waterGoal / 1000}L</Text>
         </View>
         
         <View style={styles.waterContent}>
@@ -280,7 +283,7 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
         </View>
 
         <View style={styles.waterProgressBg}>
-          <View style={[styles.waterProgressBar, { width: `${Math.min(100, (water / 2500) * 100)}%` }]} />
+          <View style={[styles.waterProgressBar, { width: `${Math.min(100, (water / waterGoal) * 100)}%` }]} />
         </View>
       </MotiView>
 
@@ -441,6 +444,8 @@ export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'hom
   );
 }
 
+export default memo(DashboardScreen);
+
 const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   content: { padding: theme.spacing.lg, paddingBottom: 120 },
@@ -448,27 +453,31 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
+    marginTop: theme.spacing.md,
   },
-  headerLogo: { 
-    flexDirection: 'row', 
-    alignItems: 'center' 
+  headerTop: {
+    flex: 1,
   },
-  logoIcon: { 
-    width: 36, 
-    height: 36, 
-    backgroundColor: theme.colors.primary, 
-    borderRadius: 12, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 12,
-    ...theme.shadows.soft,
+  headerGreeting: {
+    fontSize: 16,
+    color: theme.colors.secondaryText,
+    fontWeight: '500',
   },
-  headerTitle: { 
-    fontSize: 32, 
-    fontWeight: '800', 
+  headerName: {
+    fontSize: 28,
+    fontWeight: '800',
     color: theme.colors.text,
-    letterSpacing: -1,
+    letterSpacing: -0.5,
+  },
+  headerProfile: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.shadows.soft,
   },
   card: { 
     backgroundColor: theme.colors.card, 
@@ -484,7 +493,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   progressContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   circleWrapper: { width: 160, height: 160, justifyContent: 'center', alignItems: 'center' },
   circleOverlay: { position: 'absolute', alignItems: 'center' },
-  caloriesText: { fontSize: 38, fontWeight: '900', color: theme.colors.text, letterSpacing: -1 },
+  caloriesText: { fontSize: 38, fontWeight: '900', color: theme.colors.accent, letterSpacing: -1 },
   caloriesLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.secondaryText, marginTop: -4 },
   statsColumn: { flex: 1, marginLeft: theme.spacing.lg, gap: theme.spacing.md },
   miniStat: { flexDirection: 'row', alignItems: 'center' },
@@ -500,15 +509,15 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   macroProgressContainer: { height: 4, width: '100%', backgroundColor: theme.colors.background, borderRadius: 2, marginTop: 8, overflow: 'hidden' },
   macroProgressBar: { height: '100%', borderRadius: 2 },
   quickActions: { flexDirection: 'row', gap: theme.spacing.md, marginBottom: theme.spacing.xl },
-  actionBtn: { flex: 1, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: theme.radius.lg, padding: theme.spacing.md, alignItems: 'center', ...theme.shadows.soft, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-  actionIcon: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 8, backgroundColor: 'white', ...theme.shadows.soft },
+  actionBtn: { flex: 1, backgroundColor: theme.colors.card, borderRadius: theme.radius.xl, padding: theme.spacing.md, alignItems: 'center', ...theme.shadows.soft, borderWidth: 1, borderColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' },
+  actionIcon: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 8, backgroundColor: theme.colors.background },
   actionLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.text },
   aiCard: {
-    backgroundColor: theme.colors.card,
+    backgroundColor: theme.colors.primary,
     borderRadius: theme.radius.xl,
-    padding: theme.spacing.md,
+    padding: theme.spacing.lg,
     marginBottom: theme.spacing.xl,
-    ...theme.shadows.soft,
+    ...theme.shadows.medium,
   },
   aiCardContent: {
     flexDirection: 'row',
@@ -518,7 +527,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: theme.spacing.md,
@@ -527,16 +536,17 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     flex: 1,
   },
   aiTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: '800',
+    color: 'white',
   },
   aiSub: {
-    fontSize: 13,
-    color: theme.colors.secondaryText,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
     marginTop: 2,
+    fontWeight: '500',
   },
-  waterCard: { backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: theme.radius.xl, padding: theme.spacing.lg, marginBottom: theme.spacing.xl, ...theme.shadows.soft, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  waterCard: { backgroundColor: theme.colors.card, borderRadius: theme.radius.xl, padding: theme.spacing.lg, marginBottom: theme.spacing.xl, ...theme.shadows.soft, borderWidth: 1, borderColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' },
   waterHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md },
   waterTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   waterTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.text },
@@ -546,10 +556,10 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   waterValue: { fontSize: 28, fontWeight: '900', color: theme.colors.text, letterSpacing: -0.5 },
   waterSub: { fontSize: 12, color: theme.colors.secondaryText },
   waterControls: { flexDirection: 'row', gap: 8 },
-  addWaterBtn: { backgroundColor: theme.colors.blue, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, gap: 6 },
+  addWaterBtn: { backgroundColor: theme.colors.accent, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, gap: 6 },
   addWaterText: { color: 'white', fontWeight: '800', fontSize: 14 },
-  waterProgressBg: { height: 8, backgroundColor: theme.colors.background, borderRadius: 4, overflow: 'hidden' },
-  waterProgressBar: { height: '100%', backgroundColor: theme.colors.blue },
+  waterProgressBg: { height: 8, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', borderRadius: 4, overflow: 'hidden' },
+  waterProgressBar: { height: '100%', backgroundColor: theme.colors.accent },
   sectionHeader: { marginBottom: theme.spacing.md },
   sectionTitle: { fontSize: 22, fontWeight: '800', color: theme.colors.text, letterSpacing: -0.5 },
   mealCard: { flexDirection: 'row', backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, padding: theme.spacing.md, marginBottom: theme.spacing.sm, alignItems: 'center', ...theme.shadows.soft },
@@ -558,8 +568,8 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   mealImagePlaceholder: { width: 50, height: 50, borderRadius: 10, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' },
   mealInfo: { marginLeft: theme.spacing.md, flex: 1 },
   mealName: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
-  servingsBadge: { fontSize: 12, fontWeight: '800', color: theme.colors.primary, backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 8 },
-  mealCals: { fontSize: 14, fontWeight: '600', color: theme.colors.primary },
+  servingsBadge: { fontSize: 12, fontWeight: '800', color: theme.colors.accent, backgroundColor: theme.isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 8 },
+  mealCals: { fontSize: 14, fontWeight: '600', color: theme.colors.accent },
   mealTypeLabel: { fontSize: 13, fontWeight: '500', color: theme.colors.secondaryText },
   emptyCard: { padding: 40, alignItems: 'center', opacity: 0.5 },
   emptyText: { marginTop: 10, color: theme.colors.secondaryText, fontWeight: '600' },
