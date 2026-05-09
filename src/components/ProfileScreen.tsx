@@ -87,21 +87,12 @@ export default function ProfileScreen() {
       contentContainerStyle={[styles.content, { paddingTop: insets.top }]}
       showsVerticalScrollIndicator={false}
     >
-      <MotiView 
-        from={{ opacity: 0, translateY: 10 } as any}
-        animate={{ opacity: 1, translateY: 0 } as any}
-        style={styles.header}
-      >
+      <View style={styles.header}>
         <Text style={styles.title}>Profile</Text>
-      </MotiView>
+      </View>
 
       {/* User Card */}
-      <MotiView 
-        from={{ opacity: 0, scale: 0.9 } as any}
-        animate={{ opacity: 1, scale: 1 } as any}
-        transition={{ type: 'spring', delay: 100 } as any}
-        style={styles.userCard}
-      >
+      <View style={styles.userCard}>
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{profile?.email?.charAt(0).toUpperCase() || 'U'}</Text>
@@ -122,9 +113,7 @@ export default function ProfileScreen() {
           {renderInfoItem(Calendar, 'Age', profile?.age || 0, ' yrs')}
           {renderInfoItem(Target, 'Daily Goal', profile?.daily_calories_goal || 0, ' kcal')}
         </View>
-      </MotiView>
-
-      {/* Settings Section */}
+      </View>
       <Text style={styles.sectionTitle}>Preferences</Text>
       <View style={styles.menuCard}>
         <View style={styles.menuItem}>
@@ -173,7 +162,7 @@ export default function ProfileScreen() {
     </ScrollView>
 
       {/* Privacy Policy Modal */}
-      <Modal visible={showPrivacy} animationType="slide" presentationStyle="overFullScreen" transparent={false}>
+      <Modal visible={showPrivacy} animationType="slide" presentationStyle="fullScreen" transparent={false}>
         <View style={styles.modalContainer}>
           <View style={[styles.modalHeader, { paddingTop: insets.top }]}>
             <Text style={styles.modalTitle}>Privacy Policy</Text>
@@ -194,7 +183,7 @@ export default function ProfileScreen() {
       </Modal>
 
       {/* App Settings Modal */}
-      <Modal visible={showSettings} animationType="slide" presentationStyle="overFullScreen" transparent={false}>
+      <Modal visible={showSettings} animationType="slide" presentationStyle="fullScreen" transparent={false}>
         <View style={styles.modalContainer}>
           <View style={[styles.modalHeader, { paddingTop: insets.top }]}>
             <Text style={styles.modalTitle}>App Settings</Text>
@@ -375,6 +364,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   modalContainer: {
     flex: 1,
     backgroundColor: theme.colors.background,
+    zIndex: 1000,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -385,6 +375,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.separator,
     backgroundColor: theme.colors.card,
+    elevation: 5,
   },
   doneButton: {
     paddingVertical: 8,

@@ -46,7 +46,7 @@ const addWaterTool: FunctionDeclaration = {
 export async function analyzeMealText(text: string): Promise<NutritionInfo> {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-3.1-pro-preview',
       contents: [{ role: 'user', parts: [{ text: `Analyze this food description and estimate the macronutrients and calories for the given quantity: "${text}". Provide a structured JSON response.` }] }],
       config: {
         responseMimeType: "application/json",
@@ -80,7 +80,7 @@ export async function analyzeMealImage(base64Image: string, mimeType: string, go
     const detailsPrompt = extraDetails ? ` Additional details from user: "${extraDetails}". Please take this into account when estimating.` : '';
     
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-3.1-pro-preview',
       contents: {
         parts: [
           {
@@ -167,7 +167,7 @@ IMPORTANT: Si l'utilisateur mentionne une date relative (ex: 'hier soir', 'ce ma
     contents.push({ role: 'user', parts: [{ text: message }] });
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-3.1-pro-preview",
       contents: contents,
       config: {
         systemInstruction: systemInstruction,
