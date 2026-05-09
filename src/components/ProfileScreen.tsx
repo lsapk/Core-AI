@@ -81,9 +81,10 @@ export default function ProfileScreen() {
   );
 
   return (
+    <View style={styles.container}>
     <ScrollView 
       style={styles.container} 
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top }]}
       showsVerticalScrollIndicator={false}
     >
       <MotiView 
@@ -169,17 +170,18 @@ export default function ProfileScreen() {
       </View>
 
       <Text style={styles.versionText}>Core AI v1.0.0</Text>
+    </ScrollView>
 
       {/* Privacy Policy Modal */}
-      <Modal visible={showPrivacy} animationType="slide" presentationStyle="pageSheet">
-        <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
-          <View style={styles.modalHeader}>
+      <Modal visible={showPrivacy} animationType="slide" presentationStyle="overFullScreen" transparent={false}>
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalHeader, { paddingTop: insets.top }]}>
             <Text style={styles.modalTitle}>Privacy Policy</Text>
-            <TouchableOpacity onPress={() => setShowPrivacy(false)}>
+            <TouchableOpacity onPress={() => setShowPrivacy(false)} style={styles.doneButton}>
               <Text style={styles.modalCloseText}>Done</Text>
             </TouchableOpacity>
           </View>
-          <ScrollView style={styles.modalContent}>
+          <ScrollView style={styles.modalContent} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
             <Text style={styles.modalText}>
               Your privacy is important to us. This application collects minimal data required to function, such as your email for authentication and your meal logs to provide nutritional insights.
               {'\n\n'}
@@ -192,15 +194,15 @@ export default function ProfileScreen() {
       </Modal>
 
       {/* App Settings Modal */}
-      <Modal visible={showSettings} animationType="slide" presentationStyle="pageSheet">
-        <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
-          <View style={styles.modalHeader}>
+      <Modal visible={showSettings} animationType="slide" presentationStyle="overFullScreen" transparent={false}>
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalHeader, { paddingTop: insets.top }]}>
             <Text style={styles.modalTitle}>App Settings</Text>
-            <TouchableOpacity onPress={() => setShowSettings(false)}>
+            <TouchableOpacity onPress={() => setShowSettings(false)} style={styles.doneButton}>
               <Text style={styles.modalCloseText}>Done</Text>
             </TouchableOpacity>
           </View>
-          <ScrollView style={styles.modalContent}>
+          <ScrollView style={styles.modalContent} contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
             <View style={styles.menuCard}>
               <TouchableOpacity style={styles.menuItem} onPress={toggleTheme} activeOpacity={0.7}>
                 <View style={styles.menuIconContainer}>
@@ -221,7 +223,7 @@ export default function ProfileScreen() {
           </ScrollView>
         </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -378,10 +380,15 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.separator,
     backgroundColor: theme.colors.card,
+  },
+  doneButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   modalTitle: {
     fontSize: 20,

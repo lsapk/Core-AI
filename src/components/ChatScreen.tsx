@@ -185,7 +185,7 @@ function ChatScreen() {
         </View>
       )}
 
-      <BlurView intensity={theme.isDark ? 80 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.inputContainer, { paddingBottom: isKeyboardVisible ? theme.spacing.sm : Math.max(insets.bottom, 20) + 65 }]}>
+      <BlurView intensity={theme.isDark ? 80 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.inputContainer, { paddingBottom: isKeyboardVisible ? theme.spacing.sm : Math.max(insets.bottom, 20) + 90 }]}>
         <TextInput
           style={styles.input}
           placeholder="Dis-moi tout..."
