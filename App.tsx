@@ -91,10 +91,10 @@ function AppContent() {
           <AnimatePresence mode="wait" {...({} as any)}>
             <MotiView
               key={activeTab}
-              from={{ opacity: 0, scale: 0.95 } as any}
-              animate={{ opacity: 1, scale: 1 } as any}
-              exit={{ opacity: 0, scale: 1.05 } as any}
-              transition={{ type: 'timing', duration: 300 } as any}
+              from={{ opacity: 0 } as any}
+              animate={{ opacity: 1 } as any}
+              exit={{ opacity: 0 } as any}
+              transition={{ type: 'timing', duration: 200 } as any}
               style={styles.contentWrapper}
             >
               {renderContent()}
@@ -219,12 +219,12 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   },
   navBarContainer: {
     position: 'absolute',
-    bottom: 25,
+    bottom: 20,
     left: 20,
     right: 20,
     borderRadius: 35,
     backgroundColor: theme.isDark ? 'rgba(30,30,30,0.7)' : 'rgba(255,255,255,0.8)',
-    overflow: 'hidden',
+    overflow: 'visible',
     ...theme.shadows.medium,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
@@ -235,6 +235,8 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     alignItems: 'center', 
     justifyContent: 'space-around',
     paddingHorizontal: theme.spacing.md,
+    overflow: 'hidden',
+    borderRadius: 35,
   },
   navItem: { 
     alignItems: 'center', 
@@ -258,7 +260,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     height: 70,
     justifyContent: 'center',
     alignItems: 'center',
-    top: -15,
+    top: -20,
   },
   cameraButtonInner: { 
     width: 56, 

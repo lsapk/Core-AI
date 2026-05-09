@@ -58,7 +58,7 @@ serve(async (req) => {
       const detailsPrompt = extraDetails ? ` Additional details from user: "${extraDetails}". Please take this into account when estimating.` : '';
       
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.0-flash-exp',
         contents: [
           {
             inlineData: {
@@ -91,7 +91,7 @@ serve(async (req) => {
     } else if (action === 'chatWithAI') {
       const { message } = payload;
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.0-flash-exp",
         contents: message,
         config: {
           systemInstruction: `You are Core AI, an expert and motivating nutritional assistant. 
