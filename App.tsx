@@ -15,12 +15,14 @@ import OnboardingScreen from './src/components/OnboardingScreen';
 import { useStore } from './src/store/useStore';
 import { useAppTheme } from './src/utils/Theme';
 import { supabase } from './src/services/supabase';
+import { useTranslation } from './src/utils/i18n';
 
 const { width } = Dimensions.get('window');
 
 function AppContent() {
   const theme = useAppTheme();
   const styles = getStyles(theme);
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'home' | 'chat' | 'camera' | 'history' | 'profile'>('home');
   const insets = useSafeAreaInsets();
   const { user, profile, setUser, isLoading } = useStore();
@@ -124,7 +126,7 @@ function AppContent() {
               color={activeTab === 'home' ? theme.colors.primary : theme.colors.secondaryText} 
               strokeWidth={activeTab === 'home' ? 2.5 : 2}
             />
-            <Text style={[styles.navText, activeTab === 'home' && styles.navTextActive]}>Home</Text>
+            <Text style={[styles.navText, activeTab === 'home' && styles.navTextActive]}>{t('nav.home')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -137,7 +139,7 @@ function AppContent() {
               color={activeTab === 'chat' ? theme.colors.primary : theme.colors.secondaryText} 
               strokeWidth={activeTab === 'chat' ? 2.5 : 2}
             />
-            <Text style={[styles.navText, activeTab === 'chat' && styles.navTextActive]}>AI Chat</Text>
+            <Text style={[styles.navText, activeTab === 'chat' && styles.navTextActive]}>{t('nav.chat')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -165,7 +167,7 @@ function AppContent() {
               color={activeTab === 'history' ? theme.colors.primary : theme.colors.secondaryText} 
               strokeWidth={activeTab === 'history' ? 2.5 : 2}
             />
-            <Text style={[styles.navText, activeTab === 'history' && styles.navTextActive]}>History</Text>
+            <Text style={[styles.navText, activeTab === 'history' && styles.navTextActive]}>{t('nav.history')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -178,7 +180,7 @@ function AppContent() {
               color={activeTab === 'profile' ? theme.colors.primary : theme.colors.secondaryText} 
               strokeWidth={activeTab === 'profile' ? 2.5 : 2}
             />
-            <Text style={[styles.navText, activeTab === 'profile' && styles.navTextActive]}>Profile</Text>
+            <Text style={[styles.navText, activeTab === 'profile' && styles.navTextActive]}>{t('nav.profile')}</Text>
           </TouchableOpacity>
             </View>
           </MotiView>
@@ -218,19 +220,19 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   },
   navBarContainer: {
     position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
+    bottom: 30,
+    left: 24,
+    right: 24,
     borderRadius: 35,
-    backgroundColor: theme.isDark ? 'rgba(30,30,30,0.7)' : 'rgba(255,255,255,0.8)',
+    backgroundColor: theme.isDark ? 'rgba(30,30,30,0.85)' : 'rgba(255,255,255,0.9)',
     overflow: 'visible',
     ...theme.shadows.medium,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
   },
   navBar: { 
     flexDirection: 'row', 
-    height: 65, 
+    height: 70,
     alignItems: 'center', 
     justifyContent: 'space-around',
     paddingHorizontal: theme.spacing.md,
@@ -259,15 +261,17 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     height: 70,
     justifyContent: 'center',
     alignItems: 'center',
-    top: -20,
+    top: -25,
   },
   cameraButtonInner: { 
-    width: 56, 
-    height: 56, 
-    borderRadius: 28, 
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: theme.colors.primary, 
     justifyContent: 'center', 
     alignItems: 'center', 
-    ...theme.shadows.soft,
+    ...theme.shadows.medium,
+    borderWidth: 4,
+    borderColor: theme.colors.background,
   },
 });

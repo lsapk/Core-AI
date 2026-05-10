@@ -4,6 +4,7 @@ import { View as MotiView } from 'moti';
 import { FlashList } from '@shopify/flash-list';
 import { useStore } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
+import { useTranslation } from '../utils/i18n';
 import { Trash2, Calendar, Utensils } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -11,15 +12,16 @@ const { width } = Dimensions.get('window');
 function HistoryScreen() {
   const theme = useAppTheme();
   const styles = getStyles(theme);
+  const { t } = useTranslation();
   const { meals, removeMeal } = useStore();
 
   const handleDelete = (id: string, name: string) => {
     Alert.alert(
-      "Supprimer le repas",
-      `Es-tu sûr de vouloir supprimer "${name}" ?`,
+      t('history.deleteConfirm'),
+      t('history.deleteText').replace('{name}', name),
       [
-        { text: "Annuler", style: "cancel" },
-        { text: "Supprimer", style: "destructive", onPress: () => removeMeal(id) }
+        { text: t('common.cancel'), style: "cancel" },
+        { text: t('common.delete'), style: "destructive", onPress: () => removeMeal(id) }
       ]
     );
   };
@@ -48,35 +50,35 @@ function HistoryScreen() {
       const totalCals = dayData.reduce((sum, m) => sum + m.calories, 0);
       return {
         date,
-        dayName: new Date(date).toLocaleDateString('fr-FR', { weekday: 'short' }),
+        dayName: new Date(date).toLocaleDateString(t('language') === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'short' }),
         calories: totalCals
       };
     });
-  }, [meals]);
+  }, [meals, t]);
 
   const maxWeeklyCals = useMemo(() => Math.max(...weeklyStats.map(s => s.calories), 2000), [weeklyStats]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const today = new Date().toISOString().split('T')[0];
-    if (dateString === today) return 'Aujourd\'hui';
+    if (dateString === today) return t('common.today');
     
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    if (dateString === yesterday.toISOString().split('T')[0]) return 'Hier';
+    if (dateString === yesterday.toISOString().split('T')[0]) return t('common.yesterday');
 
-    return date.toLocaleDateString('fr-FR', { weekday: 'long', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(t('language') === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', month: 'short', day: 'numeric' });
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Historique</Text>
+        <Text style={styles.title}>{t('history.title')}</Text>
       </View>
 
       <View style={styles.statsSection}>
         <View style={styles.statsCard}>
-          <Text style={styles.statsCardTitle}>7 derniers jours</Text>
+          <Text style={styles.statsCardTitle}>{t('history.last7Days')}</Text>
           <View style={styles.chartContainer}>
             {weeklyStats.map((day, i) => (
               <View key={day.date} style={styles.chartBarWrapper}>
@@ -140,7 +142,7 @@ function HistoryScreen() {
                       )}
                     </View>
                     <Text style={styles.mealTypeLabel}>
-                      {meal.mealType === 'breakfast' ? 'Petit déj' : meal.mealType === 'lunch' ? 'Déjeuner' : meal.mealType === 'dinner' ? 'Dîner' : meal.mealType === 'snack' ? 'Collation' : 'Repas'}
+                      {meal.mealType === 'breakfast' ? (t('language') === 'fr' ? 'Petit déj' : 'Breakfast') : meal.mealType === 'lunch' ? (t('language') === 'fr' ? 'Déjeuner' : 'Lunch') : meal.mealType === 'dinner' ? (t('language') === 'fr' ? 'Dîner' : 'Dinner') : meal.mealType === 'snack' ? (t('language') === 'fr' ? 'Collation' : 'Snack') : (t('language') === 'fr' ? 'Repas' : 'Meal')}
                     </Text>
                     <View style={styles.macrosRow}>
                       <Text style={[styles.macroText, { color: theme.colors.primary }]}>{meal.calories} kcal</Text>
@@ -164,8 +166,8 @@ function HistoryScreen() {
           ListEmptyComponent: (
             <View style={styles.emptyContainer}>
               <Calendar size={64} color={theme.colors.secondaryText} opacity={0.3} />
-              <Text style={styles.emptyTitle}>Rien ici pour le moment</Text>
-              <Text style={styles.emptySub}>Tes repas apparaîtront ici une fois enregistrés.</Text>
+              <Text style={styles.emptyTitle}>{t('history.noHistory')}</Text>
+              <Text style={styles.emptySub}>{t('history.historySub')}</Text>
             </View>
           )
         } as any)}

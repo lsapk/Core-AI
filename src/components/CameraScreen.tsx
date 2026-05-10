@@ -11,6 +11,7 @@ import { analyzeMealImage, analyzeMealText } from '../services/gemini';
 import { fetchProductByBarcode } from '../services/openFoodFacts';
 import { useStore } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
+import { useTranslation } from '../utils/i18n';
 
 const { width, height } = Dimensions.get('window');
 
@@ -18,6 +19,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
   const theme = useAppTheme();
   const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -45,10 +47,10 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
           <View style={styles.permissionIcon}>
             <CameraIcon size={40} color={theme.colors.primary} />
           </View>
-          <Text style={styles.permissionTitle}>Camera Access</Text>
-          <Text style={styles.permissionText}>We need camera access to analyze your meals and track your nutrition.</Text>
+          <Text style={styles.permissionTitle}>{t('camera.permissionTitle')}</Text>
+          <Text style={styles.permissionText}>{t('camera.permissionText')}</Text>
           <TouchableOpacity style={styles.grantButton} onPress={requestPermission}>
-            <Text style={styles.grantButtonText}>Grant Permission</Text>
+            <Text style={styles.grantButtonText}>{t('camera.grantPermission')}</Text>
           </TouchableOpacity>
         </MotiView>
       </View>
@@ -70,7 +72,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
       setAnalysisResults([{...product, servings: 1}]);
     } catch (error: any) {
       console.error("Barcode scan error:", error);
-      Alert.alert("Erreur", `Produit introuvable ou erreur réseau. (${error.message || 'Erreur inconnue'})`);
+      Alert.alert(t('common.error'), `Produit introuvable ou erreur réseau. (${error.message || 'Erreur inconnue'})`);
     } finally {
       setIsProcessing(false);
     }
@@ -101,7 +103,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
       }
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Error picking image. Please try again.");
+      Alert.alert(t('common.error'), "Error picking image. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -128,7 +130,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
       }
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Error taking picture. Please try again.");
+      Alert.alert(t('common.error'), "Error taking picture. Please try again.");
       setPreview(null);
     } finally {
       setIsProcessing(false);
@@ -150,7 +152,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
       setManualAddText('');
     } catch (error) {
       console.error(error);
-      Alert.alert("Erreur", "Impossible d'ajouter cet aliment.");
+      Alert.alert(t('common.error'), "Impossible d'ajouter cet aliment.");
     } finally {
       setIsProcessing(false);
     }
@@ -173,7 +175,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
       }]);
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Error analyzing image. Please try again.");
+      Alert.alert(t('common.error'), "Error analyzing image. Please try again.");
       setPreview(null);
       setBase64Image(null);
       setExtraDetails('');
@@ -203,7 +205,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
       }
       onComplete();
     } catch (error) {
-      Alert.alert("Error", "Failed to save meal.");
+      Alert.alert(t('common.error'), "Failed to save meal.");
     } finally {
       setIsProcessing(false);
     }
@@ -263,7 +265,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
                 <Type size={20} color={theme.colors.secondaryText} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Add details (e.g. 'with olive oil')"
+                  placeholder={t('camera.details')}
                   placeholderTextColor={theme.colors.secondaryText}
                   value={extraDetails}
                   onChangeText={setExtraDetails}
@@ -277,7 +279,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
                 activeOpacity={0.8}
               >
                 <Check size={24} color="white" />
-                <Text style={styles.confirmButtonText}>Analyze</Text>
+                <Text style={styles.confirmButtonText}>{t('camera.analyze')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -291,7 +293,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
                   >
                     <BlurView intensity={40} tint="dark" style={styles.blurSideButton}>
                       <ScanBarcode size={24} color="white" />
-                      <Text style={styles.sideButtonText}>Barcode</Text>
+                      <Text style={styles.sideButtonText}>{t('camera.barcode')}</Text>
                     </BlurView>
                   </TouchableOpacity>
 
@@ -316,13 +318,13 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
                   >
                     <BlurView intensity={40} tint="dark" style={styles.blurSideButton}>
                       <ImagePlus size={24} color="white" />
-                      <Text style={styles.sideButtonText}>Galerie</Text>
+                      <Text style={styles.sideButtonText}>{t('camera.gallery')}</Text>
                     </BlurView>
                   </TouchableOpacity>
                 </>
               ) : (
                 <View style={styles.scanningOverlay}>
-                  <Text style={styles.scanningText}>Point camera at barcode</Text>
+                  <Text style={styles.scanningText}>{t('camera.scanBarcode')}</Text>
                 </View>
               )}
             </>
@@ -342,7 +344,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
             >
               <View style={styles.modalHandle} />
               <View style={styles.resultHeader}>
-                <Text style={styles.resultTitle}>Vérification</Text>
+                <Text style={styles.resultTitle}>{t('camera.verification')}</Text>
                 <TouchableOpacity onPress={() => setAnalysisResults([])} style={styles.modalCloseBtn}>
                   <X size={20} color={theme.colors.text} />
                 </TouchableOpacity>
@@ -418,7 +420,7 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
               </View>
 
               <TouchableOpacity style={styles.confirmResultBtn} onPress={confirmMeal}>
-                <Text style={styles.confirmResultBtnText}>Confirmer</Text>
+                <Text style={styles.confirmResultBtnText}>{t('camera.confirm')}</Text>
               </TouchableOpacity>
             </MotiView>
           </KeyboardAvoidingView>
@@ -442,8 +444,8 @@ export default function CameraScreen({ onComplete }: { onComplete: () => void })
                   >
                     <Loader2 size={48} color="white" />
                   </MotiView>
-                  <Text style={styles.loadingText}>Analyzing Meal...</Text>
-                  <Text style={styles.loadingSub}>Identifying ingredients and nutrition</Text>
+                  <Text style={styles.loadingText}>{t('camera.analyzing')}</Text>
+                  <Text style={styles.loadingSub}>{t('camera.identifying')}</Text>
                 </View>
               </BlurView>
             </MotiView>
