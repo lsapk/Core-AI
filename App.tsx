@@ -88,18 +88,9 @@ function AppContent() {
       <View style={[styles.main, { paddingTop: insets.top }]}>
         {/* Main Content */}
         <View style={styles.content}>
-          <AnimatePresence mode="wait" {...({} as any)}>
-            <MotiView
-              key={activeTab}
-              from={{ opacity: 0 } as any}
-              animate={{ opacity: 1 } as any}
-              exit={{ opacity: 0 } as any}
-              transition={{ type: 'timing', duration: 200 } as any}
-              style={styles.contentWrapper}
-            >
-              {renderContent()}
-            </MotiView>
-          </AnimatePresence>
+          <View style={styles.contentWrapper}>
+            {renderContent()}
+          </View>
         </View>
       </View>
 
@@ -235,7 +226,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     alignItems: 'center', 
     justifyContent: 'space-around',
     paddingHorizontal: theme.spacing.md,
-    overflow: 'hidden',
+    overflow: 'visible',
     borderRadius: 35,
   },
   navItem: { 
