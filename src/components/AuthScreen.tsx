@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { supabase } from '../services/supabase';
 import { useAppTheme } from '../utils/Theme';
+import { useTranslation } from '../utils/i18n';
 import { View as MotiView } from 'moti';
 import { Activity, Mail, Lock, ArrowRight } from 'lucide-react-native';
 
 export default function AuthScreen() {
   const theme = useAppTheme();
   const styles = getStyles(theme);
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,7 +17,7 @@ export default function AuthScreen() {
 
   async function handleAuth() {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('common.error'), t('auth.fillFields'));
       return;
     }
 
@@ -24,13 +26,13 @@ export default function AuthScreen() {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        Alert.alert('Success', 'Check your email for the confirmation link!');
+        Alert.alert('Success', t('auth.successSignUp'));
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      Alert.alert(t('common.error'), error.message);
     } finally {
       setLoading(false);
     }
@@ -60,16 +62,16 @@ export default function AuthScreen() {
           transition={{ delay: 200 } as any}
           style={styles.form}
         >
-          <Text style={styles.title}>{isSignUp ? 'Create Account' : 'Welcome Back'}</Text>
+          <Text style={styles.title}>{isSignUp ? t('auth.createAccount') : t('auth.welcomeBack')}</Text>
           <Text style={styles.subtitle}>
-            {isSignUp ? 'Start your fitness journey today' : 'Sign in to continue tracking'}
+            {isSignUp ? t('auth.signUpSub') : t('auth.signInSub')}
           </Text>
 
           <View style={styles.inputContainer}>
             <Mail size={20} color={theme.colors.secondaryText} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder={t('auth.email')}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -81,7 +83,7 @@ export default function AuthScreen() {
             <Lock size={20} color={theme.colors.secondaryText} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Password"
+              placeholder={t('auth.password')}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -94,11 +96,11 @@ export default function AuthScreen() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="white" />
+              <ActivityIndicator color={theme.isDark ? "black" : "white"} />
             ) : (
               <>
-                <Text style={styles.buttonText}>{isSignUp ? 'Sign Up' : 'Sign In'}</Text>
-                <ArrowRight size={20} color="white" />
+                <Text style={styles.buttonText}>{isSignUp ? t('auth.signUp') : t('auth.signIn')}</Text>
+                <ArrowRight size={20} color={theme.isDark ? "black" : "white"} />
               </>
             )}
           </TouchableOpacity>
@@ -108,7 +110,7 @@ export default function AuthScreen() {
             onPress={() => setIsSignUp(!isSignUp)}
           >
             <Text style={styles.switchText}>
-              {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+              {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.dontHaveAccount')}
             </Text>
           </TouchableOpacity>
         </MotiView>
@@ -205,7 +207,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     ...theme.shadows.medium,
   },
   buttonText: {
-    color: 'white',
+    color: theme.isDark ? 'black' : 'white',
     fontSize: 18,
     fontWeight: '700',
     marginRight: theme.spacing.sm,

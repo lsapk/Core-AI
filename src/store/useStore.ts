@@ -32,6 +32,7 @@ export interface UserProfile {
   goal: 'muscle_gain' | 'fat_loss' | 'health';
   gender: 'male' | 'female' | 'other';
   age: number;
+  birth_date?: string | null;
   weight: number;
   height: number;
   activity_level: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
@@ -44,6 +45,7 @@ export interface UserProfile {
 }
 
 export type ThemePreference = 'system' | 'light' | 'dark';
+export type Language = 'fr' | 'en';
 
 interface AppState {
   user: User | null;
@@ -54,6 +56,7 @@ interface AppState {
   water: number;
   isLoading: boolean;
   themePreference: ThemePreference;
+  language: Language;
   setUser: (user: User | null, session: Session | null) => void;
   fetchProfile: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
@@ -66,6 +69,7 @@ interface AppState {
   resetWater: () => Promise<void>;
   addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
   setThemePreference: (theme: ThemePreference) => void;
+  setLanguage: (lang: Language) => void;
   signOut: () => Promise<void>;
 }
 
@@ -80,6 +84,7 @@ export const useStore = create<AppState>()(
       water: 0,
       isLoading: false,
       themePreference: 'system',
+      language: 'fr',
 
       setUser: (user, session) => {
         set({ user, session });
@@ -114,6 +119,7 @@ export const useStore = create<AppState>()(
                 goal: 'health',
                 gender: 'other',
                 age: 0,
+                birth_date: null,
                 weight: 0,
                 height: 0,
                 activity_level: 'moderate',
@@ -136,6 +142,7 @@ export const useStore = create<AppState>()(
                 goal: 'health',
                 gender: 'other',
                 age: 0,
+                birth_date: null,
                 weight: 0,
                 height: 0,
                 activity_level: 'moderate',
@@ -157,6 +164,7 @@ export const useStore = create<AppState>()(
               goal: 'health',
               gender: 'other',
               age: 0,
+              birth_date: null,
               weight: 0,
               height: 0,
               activity_level: 'moderate',
@@ -403,6 +411,10 @@ export const useStore = create<AppState>()(
         set({ themePreference: theme });
       },
 
+      setLanguage: (lang) => {
+        set({ language: lang });
+      },
+
       signOut: async () => {
         await supabase.auth.signOut();
         set({ user: null, session: null, profile: null, meals: [], messages: [], water: 0 });
@@ -413,6 +425,7 @@ export const useStore = create<AppState>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ 
         themePreference: state.themePreference,
+        language: state.language,
         water: state.water,
         messages: state.messages
       }),

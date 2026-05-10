@@ -6,6 +6,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
+import { useTranslation } from '../utils/i18n';
 import { ChevronRight, Flame, Target, Utensils, Plus, Droplets, Camera as CameraIcon, Search, X, Bot, Activity, ScanBarcode, User } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -46,6 +47,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
   const theme = useAppTheme();
   const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { meals, profile, water, addWater, addMeal } = useStore();
   const [isManualModalVisible, setIsManualModalVisible] = useState(false);
   const [manualMeal, setManualMeal] = useState({
@@ -59,13 +61,13 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
 
   const handleManualSubmit = async () => {
     if (!manualMeal.foodName || !manualMeal.calories) {
-      Alert.alert("Erreur", "Veuillez entrer au moins un nom et les calories.");
+      Alert.alert(t('common.error'), t('dashboard.manualAddError'));
       return;
     }
 
     const cals = parseFloat(manualMeal.calories.replace(',', '.'));
     if (isNaN(cals)) {
-      Alert.alert("Erreur", "Les calories doivent être un nombre valide.");
+      Alert.alert(t('common.error'), t('dashboard.caloriesError'));
       return;
     }
 
@@ -90,7 +92,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
       setIsManualModalVisible(false);
       setManualMeal({ foodName: '', calories: '', protein: '', carbs: '', fat: '', servings: '1' });
     } catch (error) {
-      Alert.alert("Erreur", "Impossible d'ajouter le repas.");
+      Alert.alert(t('common.error'), t('dashboard.addMealError'));
     }
   };
 
@@ -124,8 +126,9 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
           animate={{ opacity: 1, translateY: 0 }}
           style={styles.headerTop}
         >
-          <Text style={styles.headerGreeting}>Bonjour{profile?.email ? ',' : ''}</Text>
-          <Text style={styles.headerName}>{profile?.email?.split('@')[0] || ''}</Text>
+          <Text style={styles.headerGreeting}>
+            {t('dashboard.greeting')}, <Text style={styles.headerName}>{profile?.email?.split('@')[0] || ''}</Text>
+          </Text>
         </MotiView>
         <TouchableOpacity style={styles.headerProfile} onPress={() => onNavigate('profile')}>
            <User size={24} color={theme.colors.text} />
@@ -139,9 +142,9 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
         style={styles.card}
       >
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Aujourd'hui</Text>
+          <Text style={styles.cardTitle}>{t('common.today')}</Text>
           <View style={styles.dateBadge}>
-            <Text style={styles.dateText}>{new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</Text>
+            <Text style={styles.dateText}>{new Date().toLocaleDateString(t('language') === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}</Text>
           </View>
         </View>
 
@@ -155,7 +158,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
             />
             <View style={styles.circleOverlay}>
               <Text style={styles.caloriesText}>{remainingCalories}</Text>
-              <Text style={styles.caloriesLabel}>kcal restants</Text>
+              <Text style={styles.caloriesLabel}>{t('dashboard.remaining')}</Text>
             </View>
           </View>
 
@@ -165,8 +168,8 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
                 <Flame size={16} color={theme.colors.primary} />
               </View>
               <View>
-                <Text style={styles.miniLabel}>Consommé</Text>
-                <Text style={styles.miniValue}>{totalCalories} kcal</Text>
+                <Text style={styles.miniLabel}>{t('dashboard.consumed')}</Text>
+                <Text style={styles.miniValue}>{totalCalories} {t('common.kcal')}</Text>
               </View>
             </View>
             
@@ -175,8 +178,8 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
                 <Target size={16} color={theme.colors.blue} />
               </View>
               <View>
-                <Text style={styles.miniLabel}>Objectif</Text>
-                <Text style={styles.miniValue}>{dailyGoal} kcal</Text>
+                <Text style={styles.miniLabel}>{t('dashboard.goal')}</Text>
+                <Text style={styles.miniValue}>{dailyGoal} {t('common.kcal')}</Text>
               </View>
             </View>
           </View>
@@ -186,9 +189,9 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
       {/* Macros */}
       <View style={styles.macrosRow}>
         {[
-          { label: 'Protéines', value: totalProtein, goal: proteinGoal, color: theme.colors.blue, icon: 'P' },
-          { label: 'Glucides', value: totalCarbs, goal: carbsGoal, color: theme.colors.orange, icon: 'G' },
-          { label: 'Lipides', value: totalFat, goal: fatGoal, color: theme.colors.red, icon: 'L' },
+          { label: t('common.protein'), value: totalProtein, goal: proteinGoal, color: theme.colors.blue, icon: 'P' },
+          { label: t('common.carbs'), value: totalCarbs, goal: carbsGoal, color: theme.colors.orange, icon: 'G' },
+          { label: t('common.fat'), value: totalFat, goal: fatGoal, color: theme.colors.red, icon: 'L' },
         ].map((macro, index) => (
           <MotiView 
             key={macro.label}
@@ -222,14 +225,14 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
           <View style={[styles.actionIcon, { backgroundColor: theme.colors.blue }]}>
             <ScanBarcode size={24} color="white" />
           </View>
-          <Text style={styles.actionLabel}>Scanner</Text>
+          <Text style={styles.actionLabel}>{t('nav.camera')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionBtn} onPress={() => setIsManualModalVisible(true)}>
           <View style={[styles.actionIcon, { backgroundColor: theme.colors.orange }]}>
             <Plus size={24} color="white" />
           </View>
-          <Text style={styles.actionLabel}>Manuel</Text>
+          <Text style={styles.actionLabel}>{t('common.add')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -244,8 +247,8 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
             <Bot size={24} color="white" />
           </View>
           <View style={styles.aiTextContainer}>
-            <Text style={styles.aiTitle}>Assistant IA</Text>
-            <Text style={styles.aiSub}>"Combien de calories dans un croissant ?"</Text>
+            <Text style={styles.aiTitle}>{t('dashboard.aiAssistant')}</Text>
+            <Text style={styles.aiSub}>{t('dashboard.aiSub')}</Text>
           </View>
           <ChevronRight size={20} color="white" />
         </View>
@@ -260,15 +263,15 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
         <View style={styles.waterHeader}>
           <View style={styles.waterTitleRow}>
             <Droplets size={20} color={theme.colors.blue} />
-            <Text style={styles.waterTitle}>Hydratation</Text>
+            <Text style={styles.waterTitle}>{t('common.water')}</Text>
           </View>
-          <Text style={styles.waterGoal}>Objectif: {waterGoal / 1000}L</Text>
+          <Text style={styles.waterGoal}>{t('dashboard.waterGoal')}: {waterGoal / 1000}L</Text>
         </View>
         
         <View style={styles.waterContent}>
           <View style={styles.waterInfo}>
             <Text style={styles.waterValue}>{(water / 1000).toFixed(1)}L</Text>
-            <Text style={styles.waterSub}>Continue comme ça ! 💧</Text>
+            <Text style={styles.waterSub}>{t('dashboard.continue')}</Text>
           </View>
           
           <View style={styles.waterControls}>
@@ -289,13 +292,13 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
 
       {/* Recent Meals */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Repas récents</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.recentMeals')}</Text>
       </View>
 
       {todaysMeals.length === 0 ? (
         <View style={styles.emptyCard}>
           <Utensils size={32} color={theme.colors.secondaryText} opacity={0.3} />
-          <Text style={styles.emptyText}>Aucun repas aujourd'hui</Text>
+          <Text style={styles.emptyText}>{t('dashboard.noMeals')}</Text>
         </View>
       ) : (
         todaysMeals.slice(0, 3).map((meal, index) => (
@@ -348,7 +351,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
               <View style={styles.modalHandle} />
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Ajout manuel</Text>
+                  <Text style={styles.modalTitle}>{t('dashboard.manualAdd')}</Text>
                   <TouchableOpacity 
                     onPress={() => setIsManualModalVisible(false)}
                     style={styles.modalCloseBtn}
@@ -358,7 +361,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Nom du repas</Text>
+                  <Text style={styles.inputLabel}>{t('dashboard.foodName')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="Ex: Salade César"
@@ -369,7 +372,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Calories (kcal)</Text>
+                  <Text style={styles.inputLabel}>{t('dashboard.calories')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0"
@@ -417,7 +420,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Quantité (ex: 1.5)</Text>
+                  <Text style={styles.inputLabel}>{t('dashboard.servings')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="1"
@@ -433,7 +436,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
                   onPress={handleManualSubmit}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.submitBtnText}>Ajouter le repas</Text>
+                  <Text style={styles.submitBtnText}>{t('dashboard.addMeal')}</Text>
                 </TouchableOpacity>
               </ScrollView>
             </MotiView>
@@ -460,15 +463,16 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     flex: 1,
   },
   headerGreeting: {
-    fontSize: 16,
-    color: theme.colors.secondaryText,
-    fontWeight: '500',
-  },
-  headerName: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '800',
     color: theme.colors.text,
-    letterSpacing: -0.5,
+    letterSpacing: -1,
+  },
+  headerName: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: theme.colors.primary,
+    letterSpacing: -1,
   },
   headerProfile: {
     width: 44,

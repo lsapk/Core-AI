@@ -7,6 +7,7 @@ CREATE TABLE public.profiles (
   goal TEXT DEFAULT 'health',
   gender TEXT DEFAULT 'other',
   age INTEGER DEFAULT 0,
+  birth_date DATE,
   weight NUMERIC DEFAULT 0,
   height NUMERIC DEFAULT 0,
   activity_level TEXT DEFAULT 'moderate',
@@ -14,6 +15,7 @@ CREATE TABLE public.profiles (
   protein_goal INTEGER DEFAULT 150,
   carbs_goal INTEGER DEFAULT 200,
   fat_goal INTEGER DEFAULT 65,
+  water_goal INTEGER DEFAULT 2500,
   onboarding_completed BOOLEAN DEFAULT false,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
@@ -30,7 +32,8 @@ CREATE TABLE public.meals (
   carbs INTEGER NOT NULL,
   fat INTEGER NOT NULL,
   servings INTEGER DEFAULT 1,
-  image_url TEXT
+  image_url TEXT,
+  meal_type TEXT
 );
 
 -- 3. Création de la table d'hydratation (water_logs)

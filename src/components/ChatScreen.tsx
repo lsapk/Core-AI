@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { useStore, ChatMessage } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
+import { useTranslation } from '../utils/i18n';
 import { Send, Bot, Mic } from 'lucide-react-native';
 import { chatWithAI } from '../services/gemini';
 import Markdown from 'react-native-markdown-display';
@@ -14,6 +15,7 @@ function ChatScreen() {
   const theme = useAppTheme();
   const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { messages, addMessage, addMeal, addWater, meals, profile } = useStore();
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -50,7 +52,7 @@ function ChatScreen() {
 
     // 1. Calcul du contexte journalier strict
     const todayISO = new Date().toISOString().split('T')[0];
-    const todayDateStr = new Date().toLocaleDateString('fr-FR');
+    const todayDateStr = new Date().toLocaleDateString(t('language') === 'fr' ? 'fr-FR' : 'en-US');
     const todayMeals = meals.filter(m => m.date.startsWith(todayISO));
     
     const totalCals = todayMeals.reduce((acc, m) => acc + m.calories, 0);
@@ -113,7 +115,7 @@ function ChatScreen() {
 
     } catch (error) {
       console.error(error);
-      addMessage({ role: 'model', text: "Erreur d'analyse. Merci de réessayer." });
+      addMessage({ role: 'model', text: t('common.error') });
     } finally {
       setIsTyping(false);
     }
@@ -172,8 +174,8 @@ function ChatScreen() {
           ListEmptyComponent: (
             <View style={styles.emptyContainer}>
               <Bot size={48} color={theme.colors.primary} />
-              <Text style={styles.emptyTitle}>Salut ! Je suis ton assistant Core AI.</Text>
-              <Text style={styles.emptySub}>Dis-moi ce que tu as mangé ou bu, ou pose-moi une question sur ta nutrition !</Text>
+              <Text style={styles.emptyTitle}>{t('chat.emptyTitle')}</Text>
+              <Text style={styles.emptySub}>{t('chat.emptySub')}</Text>
             </View>
           )
         } as any)}
@@ -182,14 +184,14 @@ function ChatScreen() {
       {isTyping && (
         <View style={styles.typingIndicator}>
           <ActivityIndicator size="small" color={theme.colors.primary} />
-          <Text style={styles.typingText}>Core AI réfléchit...</Text>
+          <Text style={styles.typingText}>{t('chat.typing')}</Text>
         </View>
       )}
 
-      <BlurView intensity={theme.isDark ? 80 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.inputContainer, { paddingBottom: isKeyboardVisible ? theme.spacing.sm : Math.max(insets.bottom, 20) + 90 }]}>
+      <BlurView intensity={theme.isDark ? 80 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.inputContainer, { paddingBottom: isKeyboardVisible ? theme.spacing.sm : Math.max(insets.bottom, 20) + 110 }]}>
         <TextInput
           style={styles.input}
-          placeholder="Dis-moi tout..."
+          placeholder={t('chat.placeholder')}
           placeholderTextColor={theme.colors.secondaryText}
           value={inputText}
           onChangeText={setInputText}
