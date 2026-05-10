@@ -1,4 +1,22 @@
 -- Exécutez ce code dans l'éditeur SQL de votre projet Supabase (SQL Editor)
+-- Ce script est conçu pour être exécuté plusieurs fois en toute sécurité (idempotent).
+
+-- 0. Nettoyage initial (Optionnel mais recommandé pour repartir de zéro)
+-- On désactive temporairement le RLS pour faciliter le nettoyage si nécessaire
+-- ALTER TABLE IF EXISTS public.profiles DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE IF EXISTS public.meals DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE IF EXISTS public.water_logs DISABLE ROW LEVEL SECURITY;
+
+-- Suppression des tables existantes (dans l'ordre inverse des dépendances)
+DROP TABLE IF EXISTS public.water_logs;
+DROP TABLE IF EXISTS public.meals;
+DROP TABLE IF EXISTS public.profiles;
+
+-- Suppression des politiques de stockage existantes pour éviter les erreurs de duplication
+DROP POLICY IF EXISTS "Anyone can view meal photos" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can upload meal photos" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update own meal photos" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own meal photos" ON storage.objects;
 
 -- 1. Création de la table des profils (profiles)
 CREATE TABLE public.profiles (
@@ -100,6 +118,9 @@ USING (auth.uid() = user_id);
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('meal-photos', 'meal-photos', true)
 ON CONFLICT (id) DO NOTHING;
+
+-- Nettoyage des objets existants dans le bucket (optionnel, pour repartir à zéro)
+DELETE FROM storage.objects WHERE bucket_id = 'meal-photos';
 
 -- Storage policies
 CREATE POLICY "Anyone can view meal photos"
