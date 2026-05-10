@@ -1,7 +1,10 @@
--- Exécutez ce code dans l'éditeur SQL de votre projet Supabase (SQL Editor)
+-- Nettoyage complet (Optionnel : à n'utiliser que pour une réinitialisation totale)
+-- DROP TABLE IF EXISTS public.meals CASCADE;
+-- DROP TABLE IF EXISTS public.water_logs CASCADE;
+-- DROP TABLE IF EXISTS public.profiles CASCADE;
 
 -- 1. Création de la table des profils (profiles)
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   email TEXT,
   goal TEXT DEFAULT 'health',
@@ -21,7 +24,7 @@ CREATE TABLE public.profiles (
 );
 
 -- 2. Création de la table des repas (meals)
-CREATE TABLE public.meals (
+CREATE TABLE IF NOT EXISTS public.meals (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -37,7 +40,7 @@ CREATE TABLE public.meals (
 );
 
 -- 3. Création de la table d'hydratation (water_logs)
-CREATE TABLE public.water_logs (
+CREATE TABLE IF NOT EXISTS public.water_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
   date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -51,50 +54,41 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.meals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.water_logs ENABLE ROW LEVEL SECURITY;
 
--- 5. Création des politiques d'accès (Policies) strictes basées sur l'utilisateur
+-- 5. Création des politiques d'accès (Policies)
+-- On utilise DROP POLICY IF EXISTS pour éviter les erreurs si elles existent déjà
 
 -- Profiles policies
-CREATE POLICY "Users can view own profile" 
-ON public.profiles FOR SELECT 
-USING (auth.uid() = id);
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
+CREATE POLICY "Users can view own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
 
-CREATE POLICY "Users can insert own profile" 
-ON public.profiles FOR INSERT 
-WITH CHECK (auth.uid() = id);
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+CREATE POLICY "Users can insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
-CREATE POLICY "Users can update own profile" 
-ON public.profiles FOR UPDATE 
-USING (auth.uid() = id);
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 -- Meals policies
-CREATE POLICY "Users can view own meals" 
-ON public.meals FOR SELECT 
-USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can view own meals" ON public.meals;
+CREATE POLICY "Users can view own meals" ON public.meals FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can insert own meals" 
-ON public.meals FOR INSERT 
-WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own meals" ON public.meals;
+CREATE POLICY "Users can insert own meals" ON public.meals FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own meals" 
-ON public.meals FOR UPDATE 
-USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own meals" ON public.meals;
+CREATE POLICY "Users can update own meals" ON public.meals FOR UPDATE USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can delete own meals" 
-ON public.meals FOR DELETE 
-USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete own meals" ON public.meals;
+CREATE POLICY "Users can delete own meals" ON public.meals FOR DELETE USING (auth.uid() = user_id);
 
 -- Water logs policies
-CREATE POLICY "Users can view own water logs" 
-ON public.water_logs FOR SELECT 
-USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can view own water logs" ON public.water_logs;
+CREATE POLICY "Users can view own water logs" ON public.water_logs FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can insert own water logs" 
-ON public.water_logs FOR INSERT 
-WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own water logs" ON public.water_logs;
+CREATE POLICY "Users can insert own water logs" ON public.water_logs FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own water logs" 
-ON public.water_logs FOR UPDATE 
-USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own water logs" ON public.water_logs;
+CREATE POLICY "Users can update own water logs" ON public.water_logs FOR UPDATE USING (auth.uid() = user_id);
 
 -- 6. Création du bucket de stockage pour les photos de repas
 INSERT INTO storage.buckets (id, name, public) 
@@ -102,29 +96,25 @@ VALUES ('meal-photos', 'meal-photos', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies
-CREATE POLICY "Anyone can view meal photos"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'meal-photos');
+DROP POLICY IF EXISTS "Anyone can view meal photos" ON storage.objects;
+CREATE POLICY "Anyone can view meal photos" ON storage.objects FOR SELECT USING (bucket_id = 'meal-photos');
 
-CREATE POLICY "Authenticated users can upload meal photos"
-ON storage.objects FOR INSERT
-WITH CHECK (
+DROP POLICY IF EXISTS "Authenticated users can upload meal photos" ON storage.objects;
+CREATE POLICY "Authenticated users can upload meal photos" ON storage.objects FOR INSERT WITH CHECK (
   bucket_id = 'meal-photos' AND 
   auth.role() = 'authenticated' AND
   (storage.foldername(name))[1] = auth.uid()::text
 );
 
-CREATE POLICY "Users can update own meal photos"
-ON storage.objects FOR UPDATE
-USING (
+DROP POLICY IF EXISTS "Users can update own meal photos" ON storage.objects;
+CREATE POLICY "Users can update own meal photos" ON storage.objects FOR UPDATE USING (
   bucket_id = 'meal-photos' AND 
   auth.role() = 'authenticated' AND
   (storage.foldername(name))[1] = auth.uid()::text
 );
 
-CREATE POLICY "Users can delete own meal photos"
-ON storage.objects FOR DELETE
-USING (
+DROP POLICY IF EXISTS "Users can delete own meal photos" ON storage.objects;
+CREATE POLICY "Users can delete own meal photos" ON storage.objects FOR DELETE USING (
   bucket_id = 'meal-photos' AND 
   auth.role() = 'authenticated' AND
   (storage.foldername(name))[1] = auth.uid()::text
