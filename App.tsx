@@ -71,14 +71,24 @@ function AppContent() {
   }
 
   const renderContent = () => {
-    switch (activeTab) {
-      case 'home': return <DashboardScreen onNavigate={setActiveTab} />;
-      case 'chat': return <ChatScreen />;
-      case 'camera': return <CameraScreen onComplete={() => setActiveTab('home')} />;
-      case 'history': return <HistoryScreen />;
-      case 'profile': return <ProfileScreen />;
-      default: return <DashboardScreen onNavigate={setActiveTab} />;
-    }
+    return (
+      <AnimatePresence exitBeforeEnter>
+        <MotiView
+          key={activeTab}
+          from={{ opacity: 0, translateX: 10 }}
+          animate={{ opacity: 1, translateX: 0 }}
+          exit={{ opacity: 0, translateX: -10 }}
+          transition={{ type: 'timing', duration: 200 }}
+          style={styles.contentWrapper}
+        >
+          {activeTab === 'home' && <DashboardScreen onNavigate={setActiveTab} />}
+          {activeTab === 'chat' && <ChatScreen />}
+          {activeTab === 'camera' && <CameraScreen onComplete={() => setActiveTab('home')} />}
+          {activeTab === 'history' && <HistoryScreen />}
+          {activeTab === 'profile' && <ProfileScreen />}
+        </MotiView>
+      </AnimatePresence>
+    );
   };
 
   return (
@@ -88,9 +98,7 @@ function AppContent() {
       <View style={[styles.main, { paddingTop: insets.top }]}>
         {/* Main Content */}
         <View style={styles.content}>
-          <View style={styles.contentWrapper}>
-            {renderContent()}
-          </View>
+          {renderContent()}
         </View>
       </View>
 

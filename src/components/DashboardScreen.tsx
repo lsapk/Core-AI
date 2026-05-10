@@ -124,8 +124,8 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
           animate={{ opacity: 1, translateY: 0 }}
           style={styles.headerTop}
         >
-          <Text style={styles.headerGreeting}>Bonjour,</Text>
-          <Text style={styles.headerName}>{profile?.email?.split('@')[0] || 'Ami'}</Text>
+          <Text style={styles.headerGreeting}>Bonjour{profile?.email ? ',' : ''}</Text>
+          <Text style={styles.headerName}>{profile?.email?.split('@')[0] || ''}</Text>
         </MotiView>
         <TouchableOpacity style={styles.headerProfile} onPress={() => onNavigate('profile')}>
            <User size={24} color={theme.colors.text} />
