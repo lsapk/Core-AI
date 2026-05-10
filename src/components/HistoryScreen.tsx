@@ -25,7 +25,6 @@ function HistoryScreen() {
   };
 
   const groupedData = useMemo(() => {
-    const groups: { title: string; data: any[]; totalCals: number }[] = [];
     const grouped = meals.reduce((acc, meal) => {
       const date = meal.date.split('T')[0];
       if (!acc[date]) acc[date] = { title: date, data: [], totalCals: 0 };
@@ -36,6 +35,26 @@ function HistoryScreen() {
 
     return Object.values(grouped).sort((a, b) => b.title.localeCompare(a.title));
   }, [meals]);
+
+  const weeklyStats = useMemo(() => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      return d.toISOString().split('T')[0];
+    }).reverse();
+
+    return last7Days.map(date => {
+      const dayData = meals.filter(m => m.date.startsWith(date));
+      const totalCals = dayData.reduce((sum, m) => sum + m.calories, 0);
+      return {
+        date,
+        dayName: new Date(date).toLocaleDateString('fr-FR', { weekday: 'short' }),
+        calories: totalCals
+      };
+    });
+  }, [meals]);
+
+  const maxWeeklyCals = useMemo(() => Math.max(...weeklyStats.map(s => s.calories), 2000), [weeklyStats]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -53,6 +72,28 @@ function HistoryScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Historique</Text>
+      </View>
+
+      <View style={styles.statsSection}>
+        <View style={styles.statsCard}>
+          <Text style={styles.statsCardTitle}>7 derniers jours</Text>
+          <View style={styles.chartContainer}>
+            {weeklyStats.map((day, i) => (
+              <View key={day.date} style={styles.chartBarWrapper}>
+                <MotiView
+                  from={{ height: 0 }}
+                  animate={{ height: Math.max(10, (day.calories / maxWeeklyCals) * 100) }}
+                  transition={{ type: 'spring', delay: i * 50 }}
+                  style={[
+                    styles.chartBar,
+                    { backgroundColor: i === 6 ? theme.colors.primary : theme.colors.accent + '60' }
+                  ]}
+                />
+                <Text style={styles.chartDayLabel}>{day.dayName}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
       </View>
 
       <FlashList
@@ -139,6 +180,26 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { padding: theme.spacing.lg, paddingBottom: 0 },
   title: { fontSize: 34, fontWeight: '800', color: theme.colors.text, letterSpacing: -1 },
+  statsSection: { padding: theme.spacing.lg, paddingBottom: 0 },
+  statsCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 24,
+    padding: 20,
+    ...theme.shadows.soft,
+    borderWidth: 1,
+    borderColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
+  },
+  statsCardTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.text, marginBottom: 20 },
+  chartContainer: {
+    flexDirection: 'row',
+    height: 140,
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  chartBarWrapper: { alignItems: 'center', flex: 1 },
+  chartBar: { width: 30, borderRadius: 8, minHeight: 4 },
+  chartDayLabel: { fontSize: 10, fontWeight: '600', color: theme.colors.secondaryText, marginTop: 8 },
   listContent: { padding: theme.spacing.lg, paddingBottom: 120 },
   dayGroup: { marginBottom: theme.spacing.xl },
   dayHeader: { 

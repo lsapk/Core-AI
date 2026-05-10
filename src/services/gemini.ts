@@ -25,6 +25,7 @@ const addMealTool: FunctionDeclaration = {
       fat: { type: Type.NUMBER, description: "Grams of fat." },
       servings: { type: Type.NUMBER, description: "Number of servings or quantity (default 1)." },
       date: { type: Type.STRING, description: "The specific ISO 8601 date and time the meal was consumed. Ex: 2024-03-15T12:00:00.000Z. If omitted, current time is used." },
+        mealType: { type: Type.STRING, description: "Type of meal: breakfast, lunch, dinner, or snack.", enum: ["breakfast", "lunch", "dinner", "snack"] },
     },
     required: ["foodName", "calories"],
   },
@@ -46,7 +47,7 @@ const addWaterTool: FunctionDeclaration = {
 export async function analyzeMealText(text: string): Promise<NutritionInfo> {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-pro-preview',
+      model: 'gemini-2.5-flash',
       contents: [{ role: 'user', parts: [{ text: `Analyze this food description and estimate the macronutrients and calories for the given quantity: "${text}". Provide a structured JSON response.` }] }],
       config: {
         responseMimeType: "application/json",
@@ -80,7 +81,7 @@ export async function analyzeMealImage(base64Image: string, mimeType: string, go
     const detailsPrompt = extraDetails ? ` Additional details from user: "${extraDetails}". Please take this into account when estimating.` : '';
     
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-pro-preview',
+      model: 'gemini-2.5-flash',
       contents: {
         parts: [
           {
@@ -167,7 +168,7 @@ IMPORTANT: Si l'utilisateur mentionne une date relative (ex: 'hier soir', 'ce ma
     contents.push({ role: 'user', parts: [{ text: message }] });
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-2.5-flash",
       contents: contents,
       config: {
         systemInstruction: systemInstruction,

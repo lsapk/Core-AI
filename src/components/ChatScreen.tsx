@@ -94,6 +94,7 @@ function ChatScreen() {
               carbs: args.carbs || 0,
               fat: args.fat || 0,
               servings: args.servings || 1,
+              mealType: args.mealType,
             });
           } else if (call.name === 'add_water') {
             const args = call.args as any;
