@@ -2,21 +2,18 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
 import { useStore } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
-import { useTranslation } from '../utils/i18n';
 import { View as MotiView, AnimatePresence } from 'moti';
 import { ChevronRight, ChevronLeft, Target, User, Ruler, Weight, Activity } from 'lucide-react-native';
 
-const getSteps = (t: any) => [
-  { id: 'goal', title: t('onboarding.goalTitle'), icon: Target },
-  { id: 'info', title: t('onboarding.infoTitle'), icon: User },
-  { id: 'activity', title: t('onboarding.activityTitle'), icon: Activity },
+const STEPS = [
+  { id: 'goal', title: 'What is your goal?', icon: Target },
+  { id: 'info', title: 'About you', icon: User },
+  { id: 'activity', title: 'Activity level', icon: Activity },
 ];
 
 export default function OnboardingScreen() {
   const theme = useAppTheme();
   const styles = getStyles(theme);
-  const { t } = useTranslation();
-  const STEPS = getSteps(t);
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({
     goal: 'health',
@@ -81,7 +78,7 @@ export default function OnboardingScreen() {
 
   const finishOnboarding = async () => {
     if (!formData.age || !formData.weight || !formData.height) {
-      Alert.alert(t('common.error'), t('onboarding.fillAllFields'));
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
@@ -99,7 +96,7 @@ export default function OnboardingScreen() {
         onboarding_completed: true,
       } as any);
     } catch (error) {
-      Alert.alert(t('common.error'), t('onboarding.saveError'));
+      Alert.alert('Error', 'Failed to save profile');
     }
   };
 
@@ -124,9 +121,9 @@ export default function OnboardingScreen() {
         {step === 0 && (
           <View style={styles.optionsContainer}>
             {[
-              { id: 'fat_loss', label: t('onboarding.fatLoss'), desc: t('onboarding.fatLossDesc') },
-              { id: 'muscle_gain', label: t('onboarding.muscleGain'), desc: t('onboarding.muscleGainDesc') },
-              { id: 'health', label: t('onboarding.health'), desc: t('onboarding.healthDesc') },
+              { id: 'fat_loss', label: 'Lose Fat', desc: 'Burn fat and get lean' },
+              { id: 'muscle_gain', label: 'Gain Muscle', desc: 'Build strength and mass' },
+              { id: 'health', label: 'Improve Health', desc: 'Maintain and feel better' },
             ].map(opt => (
               <TouchableOpacity
                 key={opt.id}
@@ -143,7 +140,7 @@ export default function OnboardingScreen() {
         {step === 1 && (
           <View style={styles.formContainer}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('onboarding.gender')}</Text>
+              <Text style={styles.label}>Gender</Text>
               <View style={styles.genderRow}>
                 {['male', 'female'].map(g => (
                   <TouchableOpacity
@@ -152,7 +149,7 @@ export default function OnboardingScreen() {
                     onPress={() => setFormData({ ...formData, gender: g as any })}
                   >
                     <Text style={[styles.genderText, formData.gender === g && styles.genderTextActive]}>
-                      {g === 'male' ? t('onboarding.male') : t('onboarding.female')}
+                      {g.charAt(0).toUpperCase() + g.slice(1)}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -161,10 +158,10 @@ export default function OnboardingScreen() {
 
             <View style={styles.inputRow}>
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.label}>{t('common.age')}</Text>
+                <Text style={styles.label}>Age</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder={t('common.years')}
+                  placeholder="Years"
                   keyboardType="numeric"
                   value={formData.age}
                   onChangeText={v => setFormData({ ...formData, age: v })}
@@ -174,7 +171,7 @@ export default function OnboardingScreen() {
 
             <View style={styles.inputRow}>
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.label}>{t('common.weight')} (kg)</Text>
+                <Text style={styles.label}>Weight (kg)</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="kg"
@@ -184,7 +181,7 @@ export default function OnboardingScreen() {
                 />
               </View>
               <View style={[styles.inputGroup, { flex: 1, marginLeft: 16 }]}>
-                <Text style={styles.label}>{t('common.height')} (cm)</Text>
+                <Text style={styles.label}>Height (cm)</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="cm"
@@ -200,11 +197,11 @@ export default function OnboardingScreen() {
         {step === 2 && (
           <View style={styles.optionsContainer}>
             {[
-              { id: 'sedentary', label: t('onboarding.sedentary'), desc: t('onboarding.sedentaryDesc') },
-              { id: 'light', label: t('onboarding.light'), desc: t('onboarding.lightDesc') },
-              { id: 'moderate', label: t('onboarding.moderate'), desc: t('onboarding.moderateDesc') },
-              { id: 'active', label: t('onboarding.active'), desc: t('onboarding.activeDesc') },
-              { id: 'very_active', label: t('onboarding.veryActive'), desc: t('onboarding.veryActiveDesc') },
+              { id: 'sedentary', label: 'Sedentary', desc: 'Little or no exercise' },
+              { id: 'light', label: 'Lightly Active', desc: 'Exercise 1-3 times/week' },
+              { id: 'moderate', label: 'Moderately Active', desc: 'Exercise 3-5 times/week' },
+              { id: 'active', label: 'Active', desc: 'Exercise 6-7 times/week' },
+              { id: 'very_active', label: 'Very Active', desc: 'Hard exercise daily' },
             ].map(opt => (
               <TouchableOpacity
                 key={opt.id}
@@ -244,11 +241,11 @@ export default function OnboardingScreen() {
         {step > 0 && (
           <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
             <ChevronLeft size={24} color={theme.colors.secondaryText} />
-            <Text style={styles.backText}>{t('common.back')}</Text>
+            <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
-          <Text style={styles.nextText}>{step === STEPS.length - 1 ? t('common.getStarted') : t('common.next')}</Text>
+          <Text style={styles.nextText}>{step === STEPS.length - 1 ? 'Get Started' : 'Next'}</Text>
           <ChevronRight size={24} color="white" />
         </TouchableOpacity>
       </View>

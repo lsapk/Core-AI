@@ -2,14 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { supabase } from '../services/supabase';
 import { useAppTheme } from '../utils/Theme';
-import { useTranslation } from '../utils/i18n';
 import { View as MotiView } from 'moti';
 import { Activity, Mail, Lock, ArrowRight } from 'lucide-react-native';
 
 export default function AuthScreen() {
   const theme = useAppTheme();
   const styles = getStyles(theme);
-  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,7 +15,7 @@ export default function AuthScreen() {
 
   async function handleAuth() {
     if (!email || !password) {
-      Alert.alert(t('common.error'), t('auth.fillFields'));
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
@@ -26,13 +24,13 @@ export default function AuthScreen() {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        Alert.alert('Success', t('auth.successSignUp'));
+        Alert.alert('Success', 'Check your email for the confirmation link!');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
     } catch (error: any) {
-      Alert.alert(t('common.error'), error.message);
+      Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
     }
@@ -49,9 +47,7 @@ export default function AuthScreen() {
           animate={{ opacity: 1, scale: 1 } as any}
           style={styles.logoContainer}
         >
-          <View style={styles.logoIcon}>
-            <Activity size={40} color="white" />
-          </View>
+          <Activity size={40} color="white" />
         </MotiView>
         <Text style={styles.logoText}>Core AI</Text>
         <Text style={styles.logoSub}>Your AI Nutrition Partner</Text>
@@ -62,16 +58,16 @@ export default function AuthScreen() {
           transition={{ delay: 200 } as any}
           style={styles.form}
         >
-          <Text style={styles.title}>{isSignUp ? t('auth.createAccount') : t('auth.welcomeBack')}</Text>
+          <Text style={styles.title}>{isSignUp ? 'Create Account' : 'Welcome Back'}</Text>
           <Text style={styles.subtitle}>
-            {isSignUp ? t('auth.signUpSub') : t('auth.signInSub')}
+            {isSignUp ? 'Start your fitness journey today' : 'Sign in to continue tracking'}
           </Text>
 
           <View style={styles.inputContainer}>
             <Mail size={20} color={theme.colors.secondaryText} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder={t('auth.email')}
+              placeholder="Email"
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -83,7 +79,7 @@ export default function AuthScreen() {
             <Lock size={20} color={theme.colors.secondaryText} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder={t('auth.password')}
+              placeholder="Password"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -96,11 +92,11 @@ export default function AuthScreen() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color={theme.isDark ? "black" : "white"} />
+              <ActivityIndicator color="white" />
             ) : (
               <>
-                <Text style={styles.buttonText}>{isSignUp ? t('auth.signUp') : t('auth.signIn')}</Text>
-                <ArrowRight size={20} color={theme.isDark ? "black" : "white"} />
+                <Text style={styles.buttonText}>{isSignUp ? 'Sign Up' : 'Sign In'}</Text>
+                <ArrowRight size={20} color="white" />
               </>
             )}
           </TouchableOpacity>
@@ -110,7 +106,7 @@ export default function AuthScreen() {
             onPress={() => setIsSignUp(!isSignUp)}
           >
             <Text style={styles.switchText}>
-              {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.dontHaveAccount')}
+              {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
             </Text>
           </TouchableOpacity>
         </MotiView>
@@ -131,7 +127,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 50,
   },
   logoIcon: {
     width: 80,
@@ -141,29 +137,24 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...theme.shadows.medium,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   logoText: {
-    fontSize: 36,
-    fontWeight: '900',
+    fontSize: 32,
+    fontWeight: '800',
     color: theme.colors.text,
-    letterSpacing: -1.5,
-    textAlign: 'center',
+    letterSpacing: -1,
   },
   logoSub: {
     fontSize: 16,
     color: theme.colors.secondaryText,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 40,
+    fontWeight: '500',
   },
   form: {
     backgroundColor: theme.colors.card,
     borderRadius: 32,
-    padding: 24,
+    padding: 32,
     ...theme.shadows.medium,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
   },
   title: {
     fontSize: 28,
@@ -199,15 +190,15 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   button: {
     backgroundColor: theme.colors.primary,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 20,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 16,
-    ...theme.shadows.medium,
+    ...theme.shadows.soft,
   },
   buttonText: {
-    color: theme.isDark ? 'black' : 'white',
+    color: 'white',
     fontSize: 18,
     fontWeight: '700',
     marginRight: theme.spacing.sm,

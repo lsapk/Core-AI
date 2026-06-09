@@ -1,22 +1,4 @@
 -- Exécutez ce code dans l'éditeur SQL de votre projet Supabase (SQL Editor)
--- Ce script est conçu pour être exécuté plusieurs fois en toute sécurité (idempotent).
-
--- 0. Nettoyage initial (Optionnel mais recommandé pour repartir de zéro)
--- On désactive temporairement le RLS pour faciliter le nettoyage si nécessaire
--- ALTER TABLE IF EXISTS public.profiles DISABLE ROW LEVEL SECURITY;
--- ALTER TABLE IF EXISTS public.meals DISABLE ROW LEVEL SECURITY;
--- ALTER TABLE IF EXISTS public.water_logs DISABLE ROW LEVEL SECURITY;
-
--- Suppression des tables existantes (dans l'ordre inverse des dépendances)
-DROP TABLE IF EXISTS public.water_logs;
-DROP TABLE IF EXISTS public.meals;
-DROP TABLE IF EXISTS public.profiles;
-
--- Suppression des politiques de stockage existantes pour éviter les erreurs de duplication
-DROP POLICY IF EXISTS "Anyone can view meal photos" ON storage.objects;
-DROP POLICY IF EXISTS "Authenticated users can upload meal photos" ON storage.objects;
-DROP POLICY IF EXISTS "Users can update own meal photos" ON storage.objects;
-DROP POLICY IF EXISTS "Users can delete own meal photos" ON storage.objects;
 
 -- 1. Création de la table des profils (profiles)
 CREATE TABLE public.profiles (
@@ -25,7 +7,6 @@ CREATE TABLE public.profiles (
   goal TEXT DEFAULT 'health',
   gender TEXT DEFAULT 'other',
   age INTEGER DEFAULT 0,
-  birth_date DATE,
   weight NUMERIC DEFAULT 0,
   height NUMERIC DEFAULT 0,
   activity_level TEXT DEFAULT 'moderate',
@@ -33,7 +14,6 @@ CREATE TABLE public.profiles (
   protein_goal INTEGER DEFAULT 150,
   carbs_goal INTEGER DEFAULT 200,
   fat_goal INTEGER DEFAULT 65,
-  water_goal INTEGER DEFAULT 2500,
   onboarding_completed BOOLEAN DEFAULT false,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
@@ -50,8 +30,7 @@ CREATE TABLE public.meals (
   carbs INTEGER NOT NULL,
   fat INTEGER NOT NULL,
   servings INTEGER DEFAULT 1,
-  image_url TEXT,
-  meal_type TEXT
+  image_url TEXT
 );
 
 -- 3. Création de la table d'hydratation (water_logs)
@@ -118,9 +97,6 @@ USING (auth.uid() = user_id);
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('meal-photos', 'meal-photos', true)
 ON CONFLICT (id) DO NOTHING;
-
--- Nettoyage des objets existants dans le bucket (optionnel, pour repartir à zéro)
-DELETE FROM storage.objects WHERE bucket_id = 'meal-photos';
 
 -- Storage policies
 CREATE POLICY "Anyone can view meal photos"

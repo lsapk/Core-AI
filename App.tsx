@@ -15,14 +15,12 @@ import OnboardingScreen from './src/components/OnboardingScreen';
 import { useStore } from './src/store/useStore';
 import { useAppTheme } from './src/utils/Theme';
 import { supabase } from './src/services/supabase';
-import { useTranslation } from './src/utils/i18n';
 
 const { width } = Dimensions.get('window');
 
 function AppContent() {
   const theme = useAppTheme();
   const styles = getStyles(theme);
-  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'home' | 'chat' | 'camera' | 'history' | 'profile'>('home');
   const insets = useSafeAreaInsets();
   const { user, profile, setUser, isLoading } = useStore();
@@ -73,24 +71,14 @@ function AppContent() {
   }
 
   const renderContent = () => {
-    return (
-      <AnimatePresence exitBeforeEnter>
-        <MotiView
-          key={activeTab}
-          from={{ opacity: 0, translateX: 10 }}
-          animate={{ opacity: 1, translateX: 0 }}
-          exit={{ opacity: 0, translateX: -10 }}
-          transition={{ type: 'timing', duration: 200 }}
-          style={styles.contentWrapper}
-        >
-          {activeTab === 'home' && <DashboardScreen onNavigate={setActiveTab} />}
-          {activeTab === 'chat' && <ChatScreen />}
-          {activeTab === 'camera' && <CameraScreen onComplete={() => setActiveTab('home')} />}
-          {activeTab === 'history' && <HistoryScreen />}
-          {activeTab === 'profile' && <ProfileScreen />}
-        </MotiView>
-      </AnimatePresence>
-    );
+    switch (activeTab) {
+      case 'home': return <DashboardScreen onNavigate={setActiveTab} />;
+      case 'chat': return <ChatScreen />;
+      case 'camera': return <CameraScreen onComplete={() => setActiveTab('home')} />;
+      case 'history': return <HistoryScreen />;
+      case 'profile': return <ProfileScreen />;
+      default: return <DashboardScreen onNavigate={setActiveTab} />;
+    }
   };
 
   return (
@@ -100,22 +88,24 @@ function AppContent() {
       <View style={[styles.main, { paddingTop: insets.top }]}>
         {/* Main Content */}
         <View style={styles.content}>
-          {renderContent()}
+          <AnimatePresence mode="wait" {...({} as any)}>
+            <MotiView
+              key={activeTab}
+              from={{ opacity: 0, scale: 0.98 } as any}
+              animate={{ opacity: 1, scale: 1 } as any}
+              exit={{ opacity: 0, scale: 1.02 } as any}
+              transition={{ type: 'timing', duration: 300 } as any}
+              style={styles.contentWrapper}
+            >
+              {renderContent()}
+            </MotiView>
+          </AnimatePresence>
         </View>
       </View>
 
       {/* Bottom Navigation */}
-      <AnimatePresence>
-        {activeTab !== 'camera' && (
-          <MotiView
-            from={{ translateY: 100 } as any}
-            animate={{ translateY: 0 } as any}
-            exit={{ translateY: 100 } as any}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 } as any}
-            style={[styles.navBarContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}
-          >
-            <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
-            <View style={styles.navBar}>
+      <BlurView intensity={80} tint="light" style={[styles.navBarContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <View style={styles.navBar}>
           <TouchableOpacity 
             style={styles.navItem} 
             onPress={() => setActiveTab('home')}
@@ -126,7 +116,7 @@ function AppContent() {
               color={activeTab === 'home' ? theme.colors.primary : theme.colors.secondaryText} 
               strokeWidth={activeTab === 'home' ? 2.5 : 2}
             />
-            <Text style={[styles.navText, activeTab === 'home' && styles.navTextActive]}>{t('nav.home')}</Text>
+            <Text style={[styles.navText, activeTab === 'home' && styles.navTextActive]}>Home</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -139,7 +129,7 @@ function AppContent() {
               color={activeTab === 'chat' ? theme.colors.primary : theme.colors.secondaryText} 
               strokeWidth={activeTab === 'chat' ? 2.5 : 2}
             />
-            <Text style={[styles.navText, activeTab === 'chat' && styles.navTextActive]}>{t('nav.chat')}</Text>
+            <Text style={[styles.navText, activeTab === 'chat' && styles.navTextActive]}>AI Chat</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -149,7 +139,7 @@ function AppContent() {
           >
             <MotiView
               animate={{
-                scale: activeTab === ('camera' as string) ? 1.1 : 1,
+                scale: activeTab === 'camera' ? 1.1 : 1,
               }}
               style={styles.cameraButtonInner}
             >
@@ -167,7 +157,7 @@ function AppContent() {
               color={activeTab === 'history' ? theme.colors.primary : theme.colors.secondaryText} 
               strokeWidth={activeTab === 'history' ? 2.5 : 2}
             />
-            <Text style={[styles.navText, activeTab === 'history' && styles.navTextActive]}>{t('nav.history')}</Text>
+            <Text style={[styles.navText, activeTab === 'history' && styles.navTextActive]}>History</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -180,12 +170,10 @@ function AppContent() {
               color={activeTab === 'profile' ? theme.colors.primary : theme.colors.secondaryText} 
               strokeWidth={activeTab === 'profile' ? 2.5 : 2}
             />
-            <Text style={[styles.navText, activeTab === 'profile' && styles.navTextActive]}>{t('nav.profile')}</Text>
+            <Text style={[styles.navText, activeTab === 'profile' && styles.navTextActive]}>Profile</Text>
           </TouchableOpacity>
-            </View>
-          </MotiView>
-        )}
-      </AnimatePresence>
+        </View>
+      </BlurView>
     </View>
   );
 }
@@ -220,24 +208,18 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   },
   navBarContainer: {
     position: 'absolute',
-    bottom: 30,
-    left: 24,
-    right: 24,
-    borderRadius: 35,
-    backgroundColor: theme.isDark ? 'rgba(30,30,30,0.85)' : 'rgba(255,255,255,0.9)',
-    overflow: 'visible',
-    ...theme.shadows.medium,
-    borderWidth: 1,
-    borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.separator,
   },
   navBar: { 
     flexDirection: 'row', 
-    height: 70,
+    height: 65, 
     alignItems: 'center', 
     justifyContent: 'space-around',
     paddingHorizontal: theme.spacing.md,
-    overflow: 'visible',
-    borderRadius: 35,
   },
   navItem: { 
     alignItems: 'center', 
@@ -261,17 +243,15 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     height: 70,
     justifyContent: 'center',
     alignItems: 'center',
-    top: -25,
+    top: -15,
   },
   cameraButtonInner: { 
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 56, 
+    height: 56, 
+    borderRadius: 28, 
     backgroundColor: theme.colors.primary, 
     justifyContent: 'center', 
     alignItems: 'center', 
     ...theme.shadows.medium,
-    borderWidth: 4,
-    borderColor: theme.colors.background,
   },
 });

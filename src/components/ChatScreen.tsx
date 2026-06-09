@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Keyboard } from 'react-native';
 import { View as MotiView } from 'moti';
 import { FlashList } from '@shopify/flash-list';
@@ -6,16 +6,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { useStore, ChatMessage } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
-import { useTranslation } from '../utils/i18n';
-import { Send, Bot, Mic } from 'lucide-react-native';
+import { Send, Bot } from 'lucide-react-native';
 import { chatWithAI } from '../services/gemini';
 import Markdown from 'react-native-markdown-display';
 
-function ChatScreen() {
+export default function ChatScreen() {
   const theme = useAppTheme();
   const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
   const { messages, addMessage, addMeal, addWater, meals, profile } = useStore();
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -42,7 +40,7 @@ function ChatScreen() {
     };
   }, []);
 
-  const handleSend = useCallback(async () => {
+  const handleSend = async () => {
     if (!inputText.trim()) return;
 
     const userMessage = inputText.trim();
@@ -52,7 +50,7 @@ function ChatScreen() {
 
     // 1. Calcul du contexte journalier strict
     const todayISO = new Date().toISOString().split('T')[0];
-    const todayDateStr = new Date().toLocaleDateString(t('language') === 'fr' ? 'fr-FR' : 'en-US');
+    const todayDateStr = new Date().toLocaleDateString('fr-FR');
     const todayMeals = meals.filter(m => m.date.startsWith(todayISO));
     
     const totalCals = todayMeals.reduce((acc, m) => acc + m.calories, 0);
@@ -77,26 +75,14 @@ function ChatScreen() {
         for (const call of response.functionCalls) {
           if (call.name === 'add_meal') {
             const args = call.args as any;
-            let mealDate = new Date().toISOString();
-            if (args.date) {
-               try {
-                   const parsedDate = new Date(args.date);
-                   if (!isNaN(parsedDate.getTime())) {
-                       mealDate = parsedDate.toISOString();
-                   }
-               } catch(e) {
-                   console.warn("Invalid date returned from AI, using current time.", e);
-               }
-            }
             await addMeal({
-              date: mealDate,
+              date: new Date().toISOString(),
               foodName: args.foodName,
               calories: args.calories,
               protein: args.protein || 0,
               carbs: args.carbs || 0,
               fat: args.fat || 0,
               servings: args.servings || 1,
-              mealType: args.mealType,
             });
           } else if (call.name === 'add_water') {
             const args = call.args as any;
@@ -115,11 +101,11 @@ function ChatScreen() {
 
     } catch (error) {
       console.error(error);
-      addMessage({ role: 'model', text: t('common.error') });
+      addMessage({ role: 'model', text: "Erreur d'analyse. Merci de réessayer." });
     } finally {
       setIsTyping(false);
     }
-  }, [inputText, messages, addMessage, meals, profile, addMeal, addWater]);
+  };
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -130,7 +116,7 @@ function ChatScreen() {
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <FlashList
@@ -174,8 +160,8 @@ function ChatScreen() {
           ListEmptyComponent: (
             <View style={styles.emptyContainer}>
               <Bot size={48} color={theme.colors.primary} />
-              <Text style={styles.emptyTitle}>{t('chat.emptyTitle')}</Text>
-              <Text style={styles.emptySub}>{t('chat.emptySub')}</Text>
+              <Text style={styles.emptyTitle}>Salut ! Je suis ton assistant Core AI.</Text>
+              <Text style={styles.emptySub}>Dis-moi ce que tu as mangé ou bu, ou pose-moi une question sur ta nutrition !</Text>
             </View>
           )
         } as any)}
@@ -184,48 +170,34 @@ function ChatScreen() {
       {isTyping && (
         <View style={styles.typingIndicator}>
           <ActivityIndicator size="small" color={theme.colors.primary} />
-          <Text style={styles.typingText}>{t('chat.typing')}</Text>
+          <Text style={styles.typingText}>Core AI réfléchit...</Text>
         </View>
       )}
 
-      <BlurView intensity={theme.isDark ? 80 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.inputContainer, { paddingBottom: isKeyboardVisible ? theme.spacing.sm : Math.max(insets.bottom, 20) + 110 }]}>
+      <BlurView intensity={theme.isDark ? 80 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.inputContainer, { paddingBottom: isKeyboardVisible ? theme.spacing.md : Math.max(insets.bottom + 10, theme.spacing.md) }]}>
         <TextInput
           style={styles.input}
-          placeholder={t('chat.placeholder')}
+          placeholder="Dis-moi tout..."
           placeholderTextColor={theme.colors.secondaryText}
           value={inputText}
           onChangeText={setInputText}
           multiline
           maxLength={500}
         />
-        {inputText.trim() ? (
-          <TouchableOpacity
-            style={[styles.sendBtn, isTyping && styles.sendBtnDisabled]}
-            onPress={handleSend}
-            disabled={!inputText.trim() || isTyping}
-            activeOpacity={0.7}
-          >
-            <Send size={18} color="white" style={{ marginLeft: -2 }} />
-          </TouchableOpacity>
-        ) : (
-           <TouchableOpacity
-             style={[styles.sendBtn, { backgroundColor: theme.colors.card }]}
-             disabled={true}
-           >
-             <Mic size={18} color={theme.colors.secondaryText} />
-             <View style={styles.comingSoonBadge}>
-               <Text style={styles.comingSoonText}>Bientôt</Text>
-             </View>
-           </TouchableOpacity>
-        )}
+        <TouchableOpacity 
+          style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]} 
+          onPress={handleSend}
+          disabled={!inputText.trim() || isTyping}
+          activeOpacity={0.7}
+        >
+          <Send size={18} color="white" style={{ marginLeft: -2 }} />
+        </TouchableOpacity>
       </BlurView>
     </KeyboardAvoidingView>
   );
 }
 
-export default memo(ChatScreen);
-
-const markdownStyles = (theme: ReturnType<typeof useAppTheme>) => ({
+const markdownStyles = (theme: ReturnType<typeof useAppTheme>): any => ({
   body: {
     color: theme.colors.text,
     fontSize: 16,
@@ -241,11 +213,11 @@ const markdownStyles = (theme: ReturnType<typeof useAppTheme>) => ({
   tr: {
     borderBottomWidth: 1,
     borderColor: theme.colors.separator,
-    flexDirection: 'row' as const,
+    flexDirection: 'row',
   },
   th: {
     padding: 8,
-    fontWeight: 'bold' as const,
+    fontWeight: '700',
     backgroundColor: theme.colors.background,
     color: theme.colors.text,
     flex: 1,
@@ -256,11 +228,11 @@ const markdownStyles = (theme: ReturnType<typeof useAppTheme>) => ({
     flex: 1,
   },
   strong: {
-    fontWeight: 'bold' as const,
+    fontWeight: '700',
     color: theme.colors.text,
   },
   em: {
-    fontStyle: 'italic' as const,
+    fontStyle: 'italic',
     color: theme.colors.text,
   },
   p: {
@@ -284,16 +256,13 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   userBubble: {
     backgroundColor: theme.colors.primary,
     borderBottomRightRadius: 4,
-    ...theme.shadows.medium,
   },
   botBubble: {
     backgroundColor: theme.colors.card,
     borderBottomLeftRadius: 4,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
   },
   messageText: { fontSize: 16, lineHeight: 22 },
-  userText: { color: 'white', fontWeight: '600' },
+  userText: { color: 'white', fontWeight: '500' },
   botText: { color: theme.colors.text },
   timestamp: {
     fontSize: 11,
@@ -312,18 +281,17 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   input: {
     flex: 1,
     backgroundColor: theme.colors.card,
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 14,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
     fontSize: 16,
-    maxHeight: 150,
-    minHeight: 48,
+    maxHeight: 120,
+    minHeight: 40,
     marginRight: 12,
     color: theme.colors.text,
-    ...theme.shadows.soft,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+    borderColor: theme.colors.separator,
   },
   sendBtn: {
     width: 40,
@@ -335,20 +303,6 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     marginBottom: 2,
   },
   sendBtnDisabled: { opacity: 0.5 },
-  comingSoonBadge: {
-    position: 'absolute',
-    top: -10,
-    right: -10,
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  comingSoonText: {
-    color: 'white',
-    fontSize: 8,
-    fontWeight: 'bold',
-  },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',

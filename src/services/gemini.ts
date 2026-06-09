@@ -24,8 +24,6 @@ const addMealTool: FunctionDeclaration = {
       carbs: { type: Type.NUMBER, description: "Grams of carbohydrates." },
       fat: { type: Type.NUMBER, description: "Grams of fat." },
       servings: { type: Type.NUMBER, description: "Number of servings or quantity (default 1)." },
-      date: { type: Type.STRING, description: "The specific ISO 8601 date and time the meal was consumed. Ex: 2024-03-15T12:00:00.000Z. If omitted, current time is used." },
-        mealType: { type: Type.STRING, description: "Type of meal: breakfast, lunch, dinner, or snack.", enum: ["breakfast", "lunch", "dinner", "snack"] },
     },
     required: ["foodName", "calories"],
   },
@@ -44,44 +42,13 @@ const addWaterTool: FunctionDeclaration = {
   },
 };
 
-export async function analyzeMealText(text: string): Promise<NutritionInfo> {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [{ role: 'user', parts: [{ text: `Analyze this food description and estimate the macronutrients and calories for the given quantity: "${text}". Provide a structured JSON response.` }] }],
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            foodName: { type: Type.STRING, description: "Name of the food" },
-            calories: { type: Type.NUMBER, description: "Estimated total calories" },
-            protein: { type: Type.NUMBER, description: "Estimated protein in grams" },
-            carbs: { type: Type.NUMBER, description: "Estimated carbohydrates in grams" },
-            fat: { type: Type.NUMBER, description: "Estimated fat in grams" },
-          },
-          required: ["foodName", "calories", "protein", "carbs", "fat"]
-        }
-      }
-    });
-
-    if (response.text) {
-      return JSON.parse(response.text) as NutritionInfo;
-    }
-    throw new Error("No response from Gemini");
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    throw error;
-  }
-}
-
 export async function analyzeMealImage(base64Image: string, mimeType: string, goal?: string, extraDetails?: string): Promise<NutritionInfo> {
   try {
     const goalPrompt = goal ? ` The user's goal is ${goal.replace('_', ' ')}. Provide advice if this meal fits their goal.` : '';
     const detailsPrompt = extraDetails ? ` Additional details from user: "${extraDetails}". Please take this into account when estimating.` : '';
     
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: {
         parts: [
           {
@@ -129,10 +96,9 @@ export const chatWithAI = async (message: string, history: any[], dailyContext: 
 Ton objectif est d'assister l'utilisateur dans le suivi quotidien de son apport nutritionnel. Tu dois extraire les calories et macronutriments (Protéines, Glucides, Lipides) et tenir à jour un bilan journalier.
 
 # MÉTHODOLOGIE D'ANALYSE
-1. Analyse de l'entrée : Identifie précisément les aliments via le texte ou l'image.
-2. Estimation des quantités : Si précisé, calcul exact. Sinon, utilise des portions moyennes standards françaises (ex: 150g de viande, 200g de féculents cuits, une pomme de 150g).
-3. Calcul des Macros : Calcule systématiquement Calories (kcal), Protéines (g), Glucides (g), Lipides (g) avec une rigueur scientifique. Base-toi sur les tables nutritionnelles de référence (CIQUAL ou similaire).
-4. Analyse critique : Si un aliment semble particulièrement gras ou sucré par rapport à sa version standard, ajuste l'estimation.
+1. Analyse de l'entrée : Identifie les aliments via le texte.
+2. Estimation des quantités : Si précisé, calcul exact. Sinon, utilise des portions moyennes standards françaises.
+3. Calcul des Macros : Calcule systématiquement Calories (kcal), Protéines (g), Glucides (g), Lipides (g).
 
 # STRUCTURE DE RÉPONSE (FORMAT OBLIGATOIRE)
 Chaque réponse doit suivre scrupuleusement ce plan:
@@ -148,13 +114,12 @@ Chaque réponse doit suivre scrupuleusement ce plan:
 [IMPORTANT: Voici les totaux de l'utilisateur AVANT ce repas : ${dailyContext}. Additionne strictement les macros de ton 'TOTAL REPAS' à ces chiffres pour afficher le vrai cumul actuel].
 
 # CONTRAINTES ET STYLE
-- Ton : Expert, factuel, sobre et précis. Pas de jugement moral sur la nourriture.
-- Précision : Si l'entrée est trop vague pour une estimation décente, demande poliment une précision. Cependant, fais toujours une première estimation basée sur une portion standard en précisant ton hypothèse.
+- Ton : Purement factuel, sans jugement ni adjectifs superflus (pas de "super", "attention").
+- Précision : Si flou, demande poliment une précision avant de calculer.
 - Clôture : Termine par une seule petite phrase en gras et italique résumant factuellement l'état des besoins restants.
 
 # DIRECTIVE TECHNIQUE ABSOLUE
-Tu DOIS utiliser l'outil 'add_meal' pour enregistrer CHAQUE repas analysé. Fais-le de manière invisible pour l'utilisateur, tout en lui fournissant la réponse texte formatée ci-dessus.
-IMPORTANT: Si l'utilisateur mentionne une date relative (ex: 'hier soir', 'ce matin', 'mardi dernier'), tu DOIS calculer la date ISO 8601 correspondante par rapport à la date actuelle (${todayDate}) et la passer dans le champ 'date' de l'outil 'add_meal'. Si aucune date n'est précisée, omet le champ 'date'.`;
+Tu DOIS utiliser l'outil 'add_meal' pour enregistrer CHAQUE repas analysé. Fais-le de manière invisible pour l'utilisateur, tout en lui fournissant la réponse texte formatée ci-dessus.`;
 
     const contents = [];
     if (history && Array.isArray(history)) {
@@ -168,7 +133,7 @@ IMPORTANT: Si l'utilisateur mentionne une date relative (ex: 'hier soir', 'ce ma
     contents.push({ role: 'user', parts: [{ text: message }] });
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-flash-preview",
       contents: contents,
       config: {
         systemInstruction: systemInstruction,

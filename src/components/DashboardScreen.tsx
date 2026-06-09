@@ -1,4 +1,4 @@
-import React, { useState, useMemo, memo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, Dimensions, TouchableOpacity, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { View as MotiView, AnimatePresence } from 'moti';
 import { BlurView } from 'expo-blur';
@@ -6,12 +6,11 @@ import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { useAppTheme } from '../utils/Theme';
-import { useTranslation } from '../utils/i18n';
-import { ChevronRight, Flame, Target, Utensils, Plus, Droplets, Camera as CameraIcon, Search, X, Bot, Activity, ScanBarcode, User } from 'lucide-react-native';
+import { ChevronRight, Flame, Target, Utensils, Plus, Droplets, Camera as CameraIcon, Search, X, Bot, Activity, ScanBarcode } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
-const ProgressRing = memo(({ size, strokeWidth, progress, color }: { size: number, strokeWidth: number, progress: number, color: string }) => {
+const ProgressRing = ({ size, strokeWidth, progress, color }: { size: number, strokeWidth: number, progress: number, color: string }) => {
   const theme = useAppTheme();
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -41,33 +40,48 @@ const ProgressRing = memo(({ size, strokeWidth, progress, color }: { size: numbe
       />
     </Svg>
   );
-});
+};
 
-function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | 'camera' | 'history' | 'profile') => void }) {
+export default function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | 'camera' | 'history' | 'profile') => void }) {
   const theme = useAppTheme();
   const styles = getStyles(theme);
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
   const { meals, profile, water, addWater, addMeal } = useStore();
   const [isManualModalVisible, setIsManualModalVisible] = useState(false);
-  const [manualMeal, setManualMeal] = useState({
+  const [manualMeal, setManualMeal] = useState<{
+    foodName: string;
+    calories: string;
+    protein: string;
+    carbs: string;
+    fat: string;
+    servings: string;
+    mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  }>({
     foodName: '',
     calories: '',
     protein: '',
     carbs: '',
     fat: '',
     servings: '1',
+    mealType: 'lunch',
   });
+
+  const MEAL_TYPES = [
+    { id: 'breakfast', label: 'Petit-déj', icon: '☕' },
+    { id: 'lunch', label: 'Déjeuner', icon: '🥗' },
+    { id: 'dinner', label: 'Dîner', icon: '🍲' },
+    { id: 'snack', label: 'Collation', icon: '🍎' },
+  ] as const;
 
   const handleManualSubmit = async () => {
     if (!manualMeal.foodName || !manualMeal.calories) {
-      Alert.alert(t('common.error'), t('dashboard.manualAddError'));
+      Alert.alert("Erreur", "Veuillez entrer au moins un nom et les calories.");
       return;
     }
 
     const cals = parseFloat(manualMeal.calories.replace(',', '.'));
     if (isNaN(cals)) {
-      Alert.alert(t('common.error'), t('dashboard.caloriesError'));
+      Alert.alert("Erreur", "Les calories doivent être un nombre valide.");
       return;
     }
 
@@ -88,11 +102,12 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
         carbs: parseMacro(manualMeal.carbs) * validQty,
         fat: parseMacro(manualMeal.fat) * validQty,
         servings: validQty,
+        mealType: manualMeal.mealType,
       });
       setIsManualModalVisible(false);
-      setManualMeal({ foodName: '', calories: '', protein: '', carbs: '', fat: '', servings: '1' });
+      setManualMeal({ foodName: '', calories: '', protein: '', carbs: '', fat: '', servings: '1', mealType: 'lunch' });
     } catch (error) {
-      Alert.alert(t('common.error'), t('dashboard.addMealError'));
+      Alert.alert("Erreur", "Impossible d'ajouter le repas.");
     }
   };
 
@@ -100,7 +115,6 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
   const proteinGoal = profile?.protein_goal || 150;
   const carbsGoal = profile?.carbs_goal || 200;
   const fatGoal = profile?.fat_goal || 65;
-  const waterGoal = profile?.water_goal || 2500;
 
   const today = new Date().toISOString().split('T')[0];
   const todaysMeals = useMemo(() => meals.filter(meal => meal.date.startsWith(today)), [meals, today]);
@@ -124,15 +138,13 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
         <MotiView 
           from={{ opacity: 0, translateY: -10 }}
           animate={{ opacity: 1, translateY: 0 }}
-          style={styles.headerTop}
+          style={styles.headerLogo}
         >
-          <Text style={styles.headerGreeting}>
-            {t('dashboard.greeting')}, <Text style={styles.headerName}>{profile?.email?.split('@')[0] || ''}</Text>
-          </Text>
+          <View style={styles.logoIcon}>
+            <Activity size={20} color="white" />
+          </View>
+          <Text style={styles.headerTitle}>Core AI</Text>
         </MotiView>
-        <TouchableOpacity style={styles.headerProfile} onPress={() => onNavigate('profile')}>
-           <User size={24} color={theme.colors.text} />
-        </TouchableOpacity>
       </View>
 
       {/* Summary Card */}
@@ -142,9 +154,9 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
         style={styles.card}
       >
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>{t('common.today')}</Text>
+          <Text style={styles.cardTitle}>Aujourd'hui</Text>
           <View style={styles.dateBadge}>
-            <Text style={styles.dateText}>{new Date().toLocaleDateString(t('language') === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'short' })}</Text>
+            <Text style={styles.dateText}>{new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</Text>
           </View>
         </View>
 
@@ -154,11 +166,11 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
               size={160} 
               strokeWidth={14} 
               progress={progress} 
-              color={theme.colors.accent}
+              color={theme.colors.primary} 
             />
             <View style={styles.circleOverlay}>
               <Text style={styles.caloriesText}>{remainingCalories}</Text>
-              <Text style={styles.caloriesLabel}>{t('dashboard.remaining')}</Text>
+              <Text style={styles.caloriesLabel}>kcal restants</Text>
             </View>
           </View>
 
@@ -168,8 +180,8 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
                 <Flame size={16} color={theme.colors.primary} />
               </View>
               <View>
-                <Text style={styles.miniLabel}>{t('dashboard.consumed')}</Text>
-                <Text style={styles.miniValue}>{totalCalories} {t('common.kcal')}</Text>
+                <Text style={styles.miniLabel}>Consommé</Text>
+                <Text style={styles.miniValue}>{totalCalories} kcal</Text>
               </View>
             </View>
             
@@ -178,8 +190,8 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
                 <Target size={16} color={theme.colors.blue} />
               </View>
               <View>
-                <Text style={styles.miniLabel}>{t('dashboard.goal')}</Text>
-                <Text style={styles.miniValue}>{dailyGoal} {t('common.kcal')}</Text>
+                <Text style={styles.miniLabel}>Objectif</Text>
+                <Text style={styles.miniValue}>{dailyGoal} kcal</Text>
               </View>
             </View>
           </View>
@@ -189,15 +201,15 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
       {/* Macros */}
       <View style={styles.macrosRow}>
         {[
-          { label: t('common.protein'), value: totalProtein, goal: proteinGoal, color: theme.colors.blue, icon: 'P' },
-          { label: t('common.carbs'), value: totalCarbs, goal: carbsGoal, color: theme.colors.orange, icon: 'G' },
-          { label: t('common.fat'), value: totalFat, goal: fatGoal, color: theme.colors.red, icon: 'L' },
+          { label: 'Protéines', value: totalProtein, goal: proteinGoal, color: theme.colors.blue, icon: 'P' },
+          { label: 'Glucides', value: totalCarbs, goal: carbsGoal, color: theme.colors.orange, icon: 'G' },
+          { label: 'Lipides', value: totalFat, goal: fatGoal, color: theme.colors.red, icon: 'L' },
         ].map((macro, index) => (
           <MotiView 
             key={macro.label}
             from={{ opacity: 0, translateY: 20 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'spring', delay: 50 + (index * 50) }}
+            transition={{ delay: 100 + (index * 100) }}
             style={styles.macroCard}
           >
             <View style={[styles.macroIcon, { backgroundColor: `${macro.color}15` }]}>
@@ -225,14 +237,14 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
           <View style={[styles.actionIcon, { backgroundColor: theme.colors.blue }]}>
             <ScanBarcode size={24} color="white" />
           </View>
-          <Text style={styles.actionLabel}>{t('nav.camera')}</Text>
+          <Text style={styles.actionLabel}>Scanner</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionBtn} onPress={() => setIsManualModalVisible(true)}>
           <View style={[styles.actionIcon, { backgroundColor: theme.colors.orange }]}>
             <Plus size={24} color="white" />
           </View>
-          <Text style={styles.actionLabel}>{t('common.add')}</Text>
+          <Text style={styles.actionLabel}>Manuel</Text>
         </TouchableOpacity>
       </View>
 
@@ -240,17 +252,16 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
       <TouchableOpacity 
         style={styles.aiCard}
         onPress={() => onNavigate('chat')}
-        activeOpacity={0.9}
       >
         <View style={styles.aiCardContent}>
           <View style={styles.aiIconContainer}>
             <Bot size={24} color="white" />
           </View>
           <View style={styles.aiTextContainer}>
-            <Text style={styles.aiTitle}>{t('dashboard.aiAssistant')}</Text>
-            <Text style={styles.aiSub}>{t('dashboard.aiSub')}</Text>
+            <Text style={styles.aiTitle}>AI Nutritionist</Text>
+            <Text style={styles.aiSub}>"Combien de calories dans un croissant ?"</Text>
           </View>
-          <ChevronRight size={20} color="white" />
+          <ChevronRight size={20} color={theme.colors.secondaryText} />
         </View>
       </TouchableOpacity>
 
@@ -263,15 +274,15 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
         <View style={styles.waterHeader}>
           <View style={styles.waterTitleRow}>
             <Droplets size={20} color={theme.colors.blue} />
-            <Text style={styles.waterTitle}>{t('common.water')}</Text>
+            <Text style={styles.waterTitle}>Hydratation</Text>
           </View>
-          <Text style={styles.waterGoal}>{t('dashboard.waterGoal')}: {waterGoal / 1000}L</Text>
+          <Text style={styles.waterGoal}>Objectif: 2.5L</Text>
         </View>
         
         <View style={styles.waterContent}>
           <View style={styles.waterInfo}>
             <Text style={styles.waterValue}>{(water / 1000).toFixed(1)}L</Text>
-            <Text style={styles.waterSub}>{t('dashboard.continue')}</Text>
+            <Text style={styles.waterSub}>Continue comme ça ! 💧</Text>
           </View>
           
           <View style={styles.waterControls}>
@@ -286,19 +297,19 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
         </View>
 
         <View style={styles.waterProgressBg}>
-          <View style={[styles.waterProgressBar, { width: `${Math.min(100, (water / waterGoal) * 100)}%` }]} />
+          <View style={[styles.waterProgressBar, { width: `${Math.min(100, (water / 2500) * 100)}%` }]} />
         </View>
       </MotiView>
 
       {/* Recent Meals */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{t('dashboard.recentMeals')}</Text>
+        <Text style={styles.sectionTitle}>Repas récents</Text>
       </View>
 
       {todaysMeals.length === 0 ? (
         <View style={styles.emptyCard}>
           <Utensils size={32} color={theme.colors.secondaryText} opacity={0.3} />
-          <Text style={styles.emptyText}>{t('dashboard.noMeals')}</Text>
+          <Text style={styles.emptyText}>Aucun repas aujourd'hui</Text>
         </View>
       ) : (
         todaysMeals.slice(0, 3).map((meal, index) => (
@@ -306,7 +317,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
             key={meal.id} 
             from={{ opacity: 0, translateX: -20 }}
             animate={{ opacity: 1, translateX: 0 }}
-            transition={{ type: 'spring', delay: 150 + (index * 50) }}
+            transition={{ delay: 300 + (index * 100) }}
             style={styles.mealCard}
           >
             <View style={styles.mealImageContainer}>
@@ -325,10 +336,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
                   <Text style={styles.servingsBadge}>x{meal.servings}</Text>
                 )}
               </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                <Text style={styles.mealTypeLabel}>{meal.mealType === 'breakfast' ? 'Petit déj' : meal.mealType === 'lunch' ? 'Déjeuner' : meal.mealType === 'dinner' ? 'Dîner' : meal.mealType === 'snack' ? 'Collation' : 'Repas'}</Text>
-                <Text style={styles.mealCals}>{meal.calories} kcal</Text>
-              </View>
+              <Text style={styles.mealCals}>{meal.calories} kcal</Text>
             </View>
             <ChevronRight size={20} color={theme.colors.separator} />
           </MotiView>
@@ -351,7 +359,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
               <View style={styles.modalHandle} />
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>{t('dashboard.manualAdd')}</Text>
+                  <Text style={styles.modalTitle}>Ajout manuel</Text>
                   <TouchableOpacity 
                     onPress={() => setIsManualModalVisible(false)}
                     style={styles.modalCloseBtn}
@@ -361,7 +369,26 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>{t('dashboard.foodName')}</Text>
+                  <Text style={styles.inputLabel}>Quel repas ?</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.mealTypeScroll}>
+                    {MEAL_TYPES.map((type) => (
+                      <TouchableOpacity
+                        key={type.id}
+                        style={[
+                          styles.mealTypeBtn,
+                          manualMeal.mealType === type.id && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }
+                        ]}
+                        onPress={() => setManualMeal({...manualMeal, mealType: type.id})}
+                      >
+                        <Text style={[styles.mealTypeIcon, manualMeal.mealType === type.id && { color: 'white' }]}>{type.icon}</Text>
+                        <Text style={[styles.mealTypeText, manualMeal.mealType === type.id && { color: 'white' }]}>{type.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Nom du repas</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="Ex: Salade César"
@@ -372,7 +399,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>{t('dashboard.calories')}</Text>
+                  <Text style={styles.inputLabel}>Calories (kcal)</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0"
@@ -420,7 +447,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>{t('dashboard.servings')}</Text>
+                  <Text style={styles.inputLabel}>Quantité (ex: 1.5)</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="1"
@@ -436,7 +463,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
                   onPress={handleManualSubmit}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.submitBtnText}>{t('dashboard.addMeal')}</Text>
+                  <Text style={styles.submitBtnText}>Ajouter le repas</Text>
                 </TouchableOpacity>
               </ScrollView>
             </MotiView>
@@ -447,8 +474,6 @@ function DashboardScreen({ onNavigate }: { onNavigate: (tab: 'home' | 'chat' | '
   );
 }
 
-export default memo(DashboardScreen);
-
 const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   content: { padding: theme.spacing.lg, paddingBottom: 120 },
@@ -456,32 +481,27 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.xl,
-    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
   },
-  headerTop: {
-    flex: 1,
+  headerLogo: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
   },
-  headerGreeting: {
-    fontSize: 32,
-    fontWeight: '800',
+  logoIcon: { 
+    width: 36, 
+    height: 36, 
+    backgroundColor: theme.colors.primary, 
+    borderRadius: 12, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginRight: 12,
+    ...theme.shadows.soft,
+  },
+  headerTitle: { 
+    fontSize: 32, 
+    fontWeight: '800', 
     color: theme.colors.text,
     letterSpacing: -1,
-  },
-  headerName: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: theme.colors.primary,
-    letterSpacing: -1,
-  },
-  headerProfile: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.card,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...theme.shadows.soft,
   },
   card: { 
     backgroundColor: theme.colors.card, 
@@ -497,7 +517,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   progressContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   circleWrapper: { width: 160, height: 160, justifyContent: 'center', alignItems: 'center' },
   circleOverlay: { position: 'absolute', alignItems: 'center' },
-  caloriesText: { fontSize: 38, fontWeight: '900', color: theme.colors.accent, letterSpacing: -1 },
+  caloriesText: { fontSize: 38, fontWeight: '900', color: theme.colors.text, letterSpacing: -1 },
   caloriesLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.secondaryText, marginTop: -4 },
   statsColumn: { flex: 1, marginLeft: theme.spacing.lg, gap: theme.spacing.md },
   miniStat: { flexDirection: 'row', alignItems: 'center' },
@@ -513,15 +533,15 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   macroProgressContainer: { height: 4, width: '100%', backgroundColor: theme.colors.background, borderRadius: 2, marginTop: 8, overflow: 'hidden' },
   macroProgressBar: { height: '100%', borderRadius: 2 },
   quickActions: { flexDirection: 'row', gap: theme.spacing.md, marginBottom: theme.spacing.xl },
-  actionBtn: { flex: 1, backgroundColor: theme.colors.card, borderRadius: theme.radius.xl, padding: theme.spacing.md, alignItems: 'center', ...theme.shadows.soft, borderWidth: 1, borderColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' },
-  actionIcon: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 8, backgroundColor: theme.colors.background },
+  actionBtn: { flex: 1, backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, padding: theme.spacing.md, alignItems: 'center', ...theme.shadows.soft },
+  actionIcon: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   actionLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.text },
   aiCard: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.card,
     borderRadius: theme.radius.xl,
-    padding: theme.spacing.lg,
+    padding: theme.spacing.md,
     marginBottom: theme.spacing.xl,
-    ...theme.shadows.medium,
+    ...theme.shadows.soft,
   },
   aiCardContent: {
     flexDirection: 'row',
@@ -531,7 +551,7 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: theme.spacing.md,
@@ -540,17 +560,16 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
     flex: 1,
   },
   aiTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: 'white',
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.text,
   },
   aiSub: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+    fontSize: 13,
+    color: theme.colors.secondaryText,
     marginTop: 2,
-    fontWeight: '500',
   },
-  waterCard: { backgroundColor: theme.colors.card, borderRadius: theme.radius.xl, padding: theme.spacing.lg, marginBottom: theme.spacing.xl, ...theme.shadows.soft, borderWidth: 1, borderColor: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' },
+  waterCard: { backgroundColor: theme.colors.card, borderRadius: theme.radius.xl, padding: theme.spacing.lg, marginBottom: theme.spacing.xl, ...theme.shadows.soft },
   waterHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md },
   waterTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   waterTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.text },
@@ -560,10 +579,10 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   waterValue: { fontSize: 28, fontWeight: '900', color: theme.colors.text, letterSpacing: -0.5 },
   waterSub: { fontSize: 12, color: theme.colors.secondaryText },
   waterControls: { flexDirection: 'row', gap: 8 },
-  addWaterBtn: { backgroundColor: theme.colors.accent, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, gap: 6 },
+  addWaterBtn: { backgroundColor: theme.colors.blue, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, gap: 6 },
   addWaterText: { color: 'white', fontWeight: '800', fontSize: 14 },
-  waterProgressBg: { height: 8, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', borderRadius: 4, overflow: 'hidden' },
-  waterProgressBar: { height: '100%', backgroundColor: theme.colors.accent },
+  waterProgressBg: { height: 8, backgroundColor: theme.colors.background, borderRadius: 4, overflow: 'hidden' },
+  waterProgressBar: { height: '100%', backgroundColor: theme.colors.blue },
   sectionHeader: { marginBottom: theme.spacing.md },
   sectionTitle: { fontSize: 22, fontWeight: '800', color: theme.colors.text, letterSpacing: -0.5 },
   mealCard: { flexDirection: 'row', backgroundColor: theme.colors.card, borderRadius: theme.radius.lg, padding: theme.spacing.md, marginBottom: theme.spacing.sm, alignItems: 'center', ...theme.shadows.soft },
@@ -572,9 +591,8 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   mealImagePlaceholder: { width: 50, height: 50, borderRadius: 10, backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' },
   mealInfo: { marginLeft: theme.spacing.md, flex: 1 },
   mealName: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
-  servingsBadge: { fontSize: 12, fontWeight: '800', color: theme.colors.accent, backgroundColor: theme.isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 8 },
-  mealCals: { fontSize: 14, fontWeight: '600', color: theme.colors.accent },
-  mealTypeLabel: { fontSize: 13, fontWeight: '500', color: theme.colors.secondaryText },
+  servingsBadge: { fontSize: 12, fontWeight: '800', color: theme.colors.primary, backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 8 },
+  mealCals: { fontSize: 14, fontWeight: '600', color: theme.colors.primary },
   emptyCard: { padding: 40, alignItems: 'center', opacity: 0.5 },
   emptyText: { marginTop: 10, color: theme.colors.secondaryText, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-end' },
@@ -590,4 +608,9 @@ const getStyles = (theme: ReturnType<typeof useAppTheme>) => StyleSheet.create({
   macrosInputRow: { flexDirection: 'row', gap: 12 },
   submitBtn: { backgroundColor: theme.colors.primary, padding: 18, borderRadius: 20, alignItems: 'center', marginTop: 24, ...theme.shadows.soft },
   submitBtnText: { color: 'white', fontSize: 17, fontWeight: '700' },
+  emptySub: { fontSize: 15, color: theme.colors.secondaryText, marginTop: 8, textAlign: 'center', paddingHorizontal: 40, lineHeight: 22 },
+  mealTypeScroll: { paddingVertical: 8, gap: 10 },
+  mealTypeBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.separator, marginRight: 8 },
+  mealTypeIcon: { fontSize: 16, marginRight: 6 },
+  mealTypeText: { fontSize: 14, fontWeight: '600', color: theme.colors.text },
 });

@@ -13,15 +13,12 @@ export async function fetchProductByBarcode(barcode: string): Promise<OpenFoodFa
     
     if (data.status === 1 && data.product) {
       const nutriments = data.product.nutriments;
-      const servingsQty = data.product.serving_quantity ? parseFloat(data.product.serving_quantity) : 100;
-      const ratio = servingsQty / 100;
-
       return {
         foodName: data.product.product_name || "Unknown Product",
-        calories: Math.round((nutriments['energy-kcal_100g'] || 0) * ratio),
-        protein: Math.round((nutriments.proteins_100g || 0) * ratio * 10) / 10,
-        carbs: Math.round((nutriments.carbohydrates_100g || 0) * ratio * 10) / 10,
-        fat: Math.round((nutriments.fat_100g || 0) * ratio * 10) / 10,
+        calories: nutriments['energy-kcal_100g'] || 0, // Note: this is per 100g, might need serving size logic
+        protein: nutriments.proteins_100g || 0,
+        carbs: nutriments.carbohydrates_100g || 0,
+        fat: nutriments.fat_100g || 0,
       };
     }
     throw new Error("Product not found");
